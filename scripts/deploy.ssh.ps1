@@ -4,4 +4,4 @@ param(
 )
 
 $key = New-AzSshKey -ResourceGroupName $ResourceGroupName -Name $Name
-DeploymentScriptOutputs["publicKey"] = $key.publicKey
+$DeploymentScriptOutputs['publicKey'] = $key.publicKey
