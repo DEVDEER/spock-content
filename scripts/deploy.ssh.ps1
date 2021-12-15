@@ -4,9 +4,10 @@ param(
 	[string] [Parameter(Mandatory = $true)] $Password
 )
 
-# retrieve the SSH
+# try to retrieve an existing SSH public key from Azure
 $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAction Ignore
 if ($null -eq $key) {
+	#
 	# create the SSH
 	$pass = ConvertTo-SecureString $Password -AsPlainText -Force
 	ssh-keygen -b 4096 -C AZURE -f generated -N $pass
@@ -14,6 +15,10 @@ if ($null -eq $key) {
 	if ($privateKey.StartsWith('{')) {
 		$converted = $privateKey | ConvertFrom-Json
 		$privateKey = $converted.Value
+	}
+	if ($privateKey.Value) {
+		# for some reason Get-Content seems to return a JToken sometimes
+		$privateKey = $privateKey.Value
 	}
 	$publicKey = Get-Content -Raw ./generated.pub
 	Remove-Item generated*
