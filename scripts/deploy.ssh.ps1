@@ -18,7 +18,8 @@ if ($null -eq $key) {
 	Remove-Item generated*
 	$key = New-AzSshKey -ResourceGroupName $ResourceGroupName -Name $Name -PublicKey $publicKey
 	# store it in the KeyVault
-	Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultKey -SecretValue $privateKey	
+	$secret = ConvertTo-SecureString $privateKey -AsPlainText -Force
+	Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultKey -SecretValue $secret	
 }
 # return the public key in outputs
 $DeploymentScriptOutputs['publicKey'] = $key.publicKey
