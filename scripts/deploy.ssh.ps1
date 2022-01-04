@@ -8,10 +8,8 @@ param(
 
 # try to retrieve an existing SSH public key from Azure
 $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAction Ignore
-if ($null -eq $key) {
-	#
-	# create the SSH
-	Write-Host "Password: $Password"
+if ($null -eq $key) {	
+	# create the SSH	
 	$pass = ConvertTo-SecureString $Password -AsPlainText -Force
 	ssh-keygen -C AZURE -f generated -N $pass
 	$privateKey = Get-Content -Raw ./generated	
