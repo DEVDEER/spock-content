@@ -11,8 +11,8 @@ $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAct
 if ($null -eq $key) {	
 	# create the SSH		
 	ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $Password
-	$privateKey = Get-Content -Raw ./generated	
-	$publicKey = Get-Content -Raw ./generated.pub
+	$privateKey = cat ./generated	
+	$publicKey = cat ./generated.pub
 	Remove-Item generated*
 	$key = New-AzSshKey -ResourceGroupName $ResourceGroupName -Name $Name -PublicKey $publicKey
 	# store it in the KeyVault
