@@ -11,6 +11,7 @@ $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAct
 if ($null -eq $key) {
 	#
 	# create the SSH
+	Write-Host "Password: $Password"
 	$pass = ConvertTo-SecureString $Password -AsPlainText -Force
 	ssh-keygen -C AZURE -f generated -N $pass
 	$privateKey = Get-Content -Raw ./generated	
