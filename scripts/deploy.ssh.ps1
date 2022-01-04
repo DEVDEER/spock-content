@@ -12,7 +12,7 @@ if ($null -eq $key) {
 	#
 	# create the SSH
 	$pass = ConvertTo-SecureString $Password -AsPlainText -Force
-	ssh-keygen -b 4096 -C AZURE -f generated -N $pass
+	ssh-keygen -C AZURE -f generated -N $pass
 	$privateKey = Get-Content -Raw ./generated	
 	$publicKey = Get-Content -Raw ./generated.pub
 	Remove-Item generated*
