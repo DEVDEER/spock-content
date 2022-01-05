@@ -10,8 +10,14 @@ param(
 $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAction Ignore
 if ($null -eq $key) {	
 	# create the SSH
-	$password = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultPasswordKey -AsPlainText
-	ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $password
+	if ($KeyVaultPasswordKey.Length -gt 0) {
+		# create private key with passphrase
+		$password = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultPasswordKey -AsPlainText
+		ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $password
+	} else {
+		# create private key without passphrase
+		ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N '""' -q
+	}
 	$privateKey = Get-Content -Raw ./generated	
 	$publicKey = cat ./generated.pub
 	Remove-Item generated*
