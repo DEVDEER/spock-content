@@ -1,7 +1,7 @@
 param(
 	[string] [Parameter(Mandatory = $true)] $ResourceGroupName,
 	[string] [Parameter(Mandatory = $true)] $Name,
-	[string] [Parameter(Mandatory = $true)] $Password,
+	[string] [Parameter(Mandatory = $true)] $KeyVaultPasswordKey,
 	[string] [Parameter(Mandatory = $true)] $KeyVaultName,
 	[string] [Parameter(Mandatory = $true)] $KeyVaultKey
 )
@@ -9,8 +9,9 @@ param(
 # try to retrieve an existing SSH public key from Azure
 $key = Get-AzSshKey  -ResourceGroupName $ResourceGroupName -Name $Name -ErrorAction Ignore
 if ($null -eq $key) {	
-	# create the SSH		
-	ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $Password
+	# create the SSH
+	$password = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultPasswordKey -AsPlainText
+	ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $password
 	$privateKey = Get-Content -Raw ./generated	
 	$publicKey = cat ./generated.pub
 	Remove-Item generated*
