@@ -1,3 +1,12 @@
+# Default YAML pipeline for DEVDEER projects
+# Copyright DEVDEER GmbH 2023
+#
+# Latest update: 2023-03-22
+# Description:
+# TODO
+# Sample usage:
+# TODO
+
 pool:
   vmImage: 'ubuntu-latest'
 
