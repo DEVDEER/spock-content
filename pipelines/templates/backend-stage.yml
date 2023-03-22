@@ -1,0 +1,105 @@
+parameters:
+    - name: VmImage
+      type: string
+      default: 'ubuntu-latest'
+    - name: Environment
+      type: string
+      values:
+          - Integration
+          - Test
+          - Production
+    - name: StageShort
+      type: string
+      values:
+          - int
+          - test
+          - prod
+    - name: ServiceConnectionName
+      type: string
+    - name: ProjectName
+      type: string
+    - name: DeployBicep
+      type: boolean
+      default: false
+    - name: Sites
+      type: object
+
+jobs:
+    - deployment: Deploy
+      displayName: 'Deploy'
+      environment: ${{ parameters.Environment }}
+      pool:
+          vmImage: ${{ parameters.VmImage }}
+      strategy:
+          runOnce:
+              deploy:
+                  steps:
+                      - download: ci
+                        displayName: 'Download Artifact'
+                        artifact: drop
+                      - task: PowerShell@2
+                        displayName: 'Install DEVDEER Bicep Modules'
+                        condition: ${{ parameters.DeployBicep }}
+                        inputs:
+                            targetType: filePath
+                            filePath: '$(Pipeline.Workspace)/ci/drop/infrastructure/install-modules.ps1'
+                            pwsh: true
+                            workingDirectory: '$(Pipeline.Workspace)/ci/drop/infrastructure'
+                      - task: AzurePowerShell@5
+                        displayName: 'Deploy Bicep'
+                        condition: ${{ parameters.DeployBicep }}
+                        inputs:
+                            azureSubscription: ${{ parameters.ServiceConnectionName }}
+                            ScriptPath: '$(Pipeline.Workspace)/ci/drop/infrastructure/deploy.ps1'
+                            ScriptArguments: '-Stage ${{ parameters.StageShort }}'
+                            azurePowerShellVersion: LatestVersion
+                            pwsh: true
+                            workingDirectory: '$(Pipeline.Workspace)/ci/drop/infrastructure'
+                      - ${{ each site in parameters.Sites }}:
+                            - task: AzureAppServiceManage@0
+                              displayName: 'Stop Deploy Slot ${{ site.name }}'
+                              inputs:
+                                  azureSubscription: ${{ parameters.ServiceConnectionName }}
+                                  Action: 'Stop Azure App Service'
+                                  WebAppName: '${{ site.name }}-${{ parameters.StageShort }}'
+                                  SpecifySlotOrASE: true
+                                  ResourceGroupName: 'rg-${{ parameters.ProjectName }}-${{ parameters.StageShort }}'
+                                  Slot: deploy
+                            - task: AzureRmWebAppDeployment@4
+                              displayName: 'Deploy Slot ${{ site.name }}'
+                              inputs:
+                                  azureSubscription: ${{ parameters.ServiceConnectionName }}
+                                  ${{ if site.linux }}:
+                                      appType: webAppWindows
+                                  ${{ else }}:
+                                      appType: webAppLinux
+                                  WebAppName: '${{ site.name }}-${{ parameters.StageShort }}'
+                                  deployToSlotOrASE: true
+                                  Package: '$(Pipeline.Workspace)/**/${{ site.package }}'
+                                  ResourceGroupName: 'rg-${{ parameters.ProjectName }}-${{ parameters.StageShort }}'
+                                  SlotName: deploy
+                                  RuntimeStack: 'DOTNETCORE|${{ site.net }}.0'
+                            - task: AzureAppServiceManage@0
+                              displayName: 'Start Deploy Slot ${{ site.name }}'
+                              inputs:
+                                  azureSubscription: ${{ parameters.ServiceConnectionName }}
+                                  Action: 'Start Azure App Service'
+                                  WebAppName: '${{ site.name }}-${{ parameters.StageShort }}'
+                                  SpecifySlotOrASE: true
+                                  ResourceGroupName: 'rg-${{ parameters.ProjectName }}-${{ parameters.StageShort }}'
+                                  Slot: deploy
+                            - task: PowerShell@2
+                              displayName: 'Check Slot Health ${{ site.name }}'
+                              inputs:
+                                  targetType: filePath
+                                  filePath: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts/check-health.ps1'
+                                  workingDirectory: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts'
+                                  arguments: '-AppName ${{ site.name }} -Stage ${{ parameters.StageShort }}'
+                                  pwsh: true
+                            - task: AzureAppServiceManage@0
+                              displayName: 'Swap Slot ${{ site.name }}'
+                              inputs:
+                                  azureSubscription: ${{ parameters.ServiceConnectionName }}
+                                  WebAppName: '${{ site.name }}-${{ parameters.StageShort }}'
+                                  ResourceGroupName: 'rg-${{ parameters.ProjectName }}-${{ parameters.StageShort }}'
+                                  SourceSlot: deploy
