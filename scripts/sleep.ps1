@@ -4,7 +4,7 @@
 # Latest update: 2023-03-25
 
 param(
-	[string] [Parameter(Mandatory = $true)] $Seconds	
+    [string] [Parameter(Mandatory = $true)] $Seconds
 )
 
 Start-Sleep -Seconds $Seconds
