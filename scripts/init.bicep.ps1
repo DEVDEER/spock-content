@@ -4,8 +4,6 @@
 # Copyright DEVDEER GmbH 2023
 # Latest update: 2023-03-25
 
-# !!! We need to change directory because -OutputDirectory of nuget install will ignore the current
-# script root !!!
 if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
     throw "This script needs to be executed from inside its folder because white spaces where detected."
 }
