@@ -7,12 +7,12 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    $TenantId,
-    [Parameter(Mandatory = $true)]
-    $SubscriptionId,
-    [Parameter(Mandatory = $true)]
     [ValidateSet("int", "test", "prod")]
     $Stage,
+    [Parameter]
+    $TenantId,
+    [Parameter()]
+    $SubscriptionId,
     [switch]
     $WhatIf
 )
@@ -21,6 +21,19 @@ if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
     throw "This script needs to be executed from inside its folder because white spaces where detected."
 }
 $root = $PSScriptRoot.Contains(' ') ? '.' : $PSScriptRoot
+
+if (!$TenantId -or !$SubscriptionId) {
+    # try to read tenant and subscription from JSON
+    if (!Test-Path "$root/bicepContext.json") {
+        throw "You did not supply tenant and/or subscription id. Also there is no bicepSettings.json in the current path. Cannot proceed!"
+    }
+    $contextJson = Get-Content "$root/bicepContext.json" -Raw | ConvertFrom-Json -Depth 5
+    $TenantId = $contextJson.tenantId
+    $SubscriptionId = $contextJson.subscriptionId
+    if (!$TenantId -or !$SubscriptionId) {
+        throw "You did supply bicepSettings.json but tenant and/pr subscription where not defined!"
+    }
+}
 
 $parameterFile = "$root/parameters/parameters.$Stage.json"
 $templateFile = "$root/main.bicep"
