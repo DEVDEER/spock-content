@@ -23,3 +23,8 @@ Move-Item "$root/devdeer.Templates.Bicep*/modules" $root -Force
 Move-Item "$root/devdeer.Templates.Bicep*/components" $root -Force
 # try to remove the nuget installation package
 Remove-Item "$root/devdeer.Templates.Bicep*" -Recurse -Force -ErrorAction SilentlyContinue
+
+# download the scripts and content from GitHub
+curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/deploy.bicep.ps1 -OutputDirectory $root
+curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/build.bicep.ps1 -OutputDirectory $root
+curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/static/bicepContext.json -OutputDirectory $root
