@@ -51,7 +51,7 @@ else {
 # ensure that DEVDEER BICEP modules are installed
 if (!(Test-Path ./modules)) {
     Write-Host "Installing DEVDEER bicep modules..."
-    Invoke-Expression -Command "& $root/install.bicep.modules.ps1"
+    Invoke-Expression -Command "& $root/init.bicep.ps1"
 }
 
 if (!$?) {
