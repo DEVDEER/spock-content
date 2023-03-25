@@ -1,3 +1,8 @@
+# Is used by the template which generates managed SSH keys.
+#
+# Copyright DEVDEER GmbH 2023
+# Latest update: 2023-03-25
+
 param(
 	[string] [Parameter(Mandatory = $true)] $ResourceGroupName,
 	[string] [Parameter(Mandatory = $true)] $Name,
@@ -14,12 +19,13 @@ if ($null -eq $key) {
 		# create private key with passphrase
 		$password = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $KeyVaultPasswordKey -AsPlainText
 		ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N $password
-	} else {
+	}
+ else {
 		# create private key without passphrase
 		ssh-keygen -C AZURE -f generated -m PEM -t rsa -b 4096 -N '""' -q
 	}
 	$privateKey = Get-Content -Raw ./generated	
-	$publicKey = cat ./generated.pub
+	$publicKey = Get-Content ./generated.pub
 	Remove-Item generated*
 	$key = New-AzSshKey -ResourceGroupName $ResourceGroupName -Name $Name -PublicKey $publicKey
 	# store it in the KeyVault

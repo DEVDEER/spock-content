@@ -1,20 +1,32 @@
+# This represents the default Endpoint Health check used by CD pipelines
+# in our customer projects when deploy slots are used. It tries to call the
+# /health endpoint on the deploy stage of an app. If it receives 200 it also 
+# checks if the resulting JSON has an overall state of "Healthy". It will return
+# 0 on sucess or 1 on any failure so that the CD process can understand if
+# the test was successful.
+#
+# Copyright DEVDEER GmbH 2023
+# Latest update: 2023-03-25
+
 [CmdletBinding()]
 param (
 	[Parameter()]
-	[string]	
+	[string]		
 	$AppName,
 	[Parameter()]
 	[string]
 	[ValidateSet('int', 'test', 'prod')]
-	$Stage
+	$Stage,
+	[Parameter()]
+	[int]
+	$MaxRetries = 10
 )
 
 Write-Host "Trying to retrieve response from API on Slot..."
-$maxTries = 10
 $tries = 0
 $url = "https://$AppName-$Stage-deploy.azurewebsites.net/health"
 $statusOk = $false
-while ($tries -lt $maxTries) {
+while ($tries -lt $MaxRetries) {
 	$tries++
 	Start-Sleep -Seconds 5
 	Write-Host "Sending request to $url ($tries of $maxTries times) ... " -NoNewLine
