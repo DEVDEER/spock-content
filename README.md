@@ -1,8 +1,14 @@
 # spock-content
 
-Provides public content for the internal project `Spock`.
+## Summary
 
-## scripts
+Provides public content for the internal project `Spock` and customer projects of [DEVDEER](https://devdeer.com). Some of the content provided here is downloaded directly by pipeline steps or inside other default scripts.
+
+## Contribution
+
+We don't accept external pull requests. This project is only used by DEVDEER and it's customers internally.
+
+## Details
 
 ### check-health.ps1
 
@@ -22,9 +28,9 @@ You can implement this in your YAML pipelines as follows:
 - task: PowerShell@2
   displayName: 'Download health check script'
   inputs:
-    targetType: 'inline'
-	script: |
-		curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/check-health.ps1 -o "$(Pipeline.Workspace)/ci/drop/pipeline-scripts/check-health.ps1"
-	pwsh: true
-	workingDirectory: '$(Pipeline.Workspace)'
+      targetType: 'inline'
+      script: |
+          curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/check-health.ps1 -o "$(Pipeline.Workspace)/ci/drop/pipeline-scripts/check-health.ps1"
+      pwsh: true
+      workingDirectory: '$(Pipeline.Workspace)'
 ```
