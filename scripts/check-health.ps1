@@ -54,5 +54,10 @@ while ($tries -lt $MaxRetries) {
     }
 }
 
-$ExitCode = ($statusOk) ? 0 : 1
+if ($statusOk) {
+    $ExitCode = 0
+}
+else {
+    $ExitCode = 1
+}
 Exit $ExitCode
