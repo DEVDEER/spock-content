@@ -30,6 +30,7 @@ You can implement this in your YAML pipelines as follows:
   inputs:
       targetType: 'inline'
       script: |
+          mkdir -p "$(Pipeline.Workspace)/ci/drop/pipeline-scripts"
           curl https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/check-health.ps1 -o "$(Pipeline.Workspace)/ci/drop/pipeline-scripts/check-health.ps1"
       pwsh: true
       workingDirectory: '$(Pipeline.Workspace)'

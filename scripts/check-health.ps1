@@ -26,10 +26,10 @@ Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
 $url = "https://$AppName-$Stage-deploy.azurewebsites.net/health"
 $statusOk = $false
-while ($tries -lt $MaxRetries) {
+while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
     Start-Sleep -Seconds 5
-    Write-Host "Sending request to $url ($tries of $maxTries times) ... " -NoNewLine
+    Write-Host "Sending request to $url ($tries of $MaxRetries times) ... " -NoNewLine
     try {
         $response = Invoke-WebRequest $url
         $apiState = $response.StatusCode
@@ -44,8 +44,6 @@ while ($tries -lt $MaxRetries) {
             else {
                 Write-Host "OK: API responded with HEALTHY state" -ForegroundColor Green
             }
-            # break the loop
-            $tries = $maxTries
         }
     }
     catch {
