@@ -18,13 +18,15 @@ param (
     [ValidateSet('int', 'test', 'prod')]
     $Stage,
     [Parameter()]
+    [string]
+    $healthCheckPath = "health",
+    [Parameter()]
     [int]
     $MaxRetries = 10
 )
-
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/health"
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net/" + $healthCheckPath)
 $statusOk = $false
 while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
