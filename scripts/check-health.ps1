@@ -26,7 +26,7 @@ param (
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/" + $healthCheckPath)
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net/" + $healthCheckPath
 $statusOk = $false
 while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
