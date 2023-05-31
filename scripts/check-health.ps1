@@ -19,14 +19,14 @@ param (
     $Stage,
     [Parameter()]
     [string]
-    $healthCheckPath = "health",
+    $HealthCheckPath = "health",
     [Parameter()]
     [int]
     $MaxRetries = 10
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$healthCheckPath"
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$HealthCheckPath"
 $statusOk = $false
 while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
@@ -50,7 +50,7 @@ while ($tries -lt $MaxRetries -and !$statusOk) {
     }
     catch {
         # ignore
-        Write-Host "ERROR: No response retrieved." -ForegroundColor Red
+        Write-Host "ERROR" -ForegroundColor Red
     }
 }
 
