@@ -19,14 +19,17 @@ param (
     $Stage,
     [Parameter()]
     [int]
-    $MaxRetries = 10
+    $MaxRetries = 10,
+    [Parameter()]
+    [string]
+    $RelativePath = 'health'
 )
 
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/health"
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$RelativePath"
 $statusOk = $false
-while ($tries -lt $MaxRetries) {
+while ($statusOk -eq $false -and $tries -lt $MaxRetries) {
     $tries++
     Start-Sleep -Seconds 5
     Write-Host "Sending request to $url ($tries of $maxTries times) ... " -NoNewLine
