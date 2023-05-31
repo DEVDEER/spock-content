@@ -26,7 +26,7 @@ param (
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$healthCheckPath" 
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$healthCheckPath"
 $statusOk = $false
 while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
@@ -35,16 +35,16 @@ while ($tries -lt $MaxRetries -and !$statusOk) {
     try {
         $response = Invoke-WebRequest $url
         $apiState = $response.StatusCode
-        Write-Host "API responded with HTTP Status $apiState" -ForegroundColor Green
+        Write-Host "OK $apiState" -ForegroundColor Green
         if ($apiState -eq 200) {
             # check response JSON
             $json = $response.Content | ConvertFrom-Json
             $statusOk = $json.OverallStatus -eq 'Healthy'
             if (!$statusOk) {
-                Write-Host "WARN: API responded with UNHEALTHY state." -ForegroundColor Yellow
+                Write-Host "Health check responded with UNHEALTHY state." -ForegroundColor Yellow
             }
             else {
-                Write-Host "OK: API responded with HEALTHY state" -ForegroundColor Green
+                Write-Host "Health check responded with HEALTHY state" -ForegroundColor Green
             }
         }
     }
