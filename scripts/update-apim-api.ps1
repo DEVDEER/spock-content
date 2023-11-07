@@ -44,6 +44,15 @@ param (
     [Parameter(Mandatory = $false)]
     [string]
     $AdditionalName,
+    [Parameter(Mandatory = $false)]
+    [string]
+    $ApiManagementName,
+    [Parameter(Mandatory = $false)]
+    [string]
+    $ApiManagementResourceGroup,
+    [Parameter(Mandatory = $false)]
+    [string]
+    $ApiManagementSubscriptionId,
     [switch]
     $IgnoreIpRestrictions,
     [switch]
@@ -76,15 +85,15 @@ $performUpdate = $false
 $apiIdStage = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
-$prefix = "$technicalProjectName$(($AdditionalName.Length > 0) ? '-' + $AdditionalName : '')"
+$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName : '')"
 $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
 $webAppName = "api-$azureNamePart"
 $webAppFullRoot = "https://$webAppName.azurewebsites.net"
 $ipAddress = (Invoke-WebRequest -uri "http://api.ipify.org?format=text").Content
 $webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
 $handleIpExcemption = !($DryRun.IsPresent) -and !(IgnoreIpRestrictions.IsPresent) -and $TargetStage -ne $MinStage
-$resourceGroup = "rg-$technicalProjectName-shared"
-$apiMgmtName = "apim-$CompanyShortKey-$technicalProjectName"
+$resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
+$apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
 
 Write-Host "Stage is set to '$TargetStage'."
 Write-Host "Current IP address is '$ipAddress'."
@@ -172,8 +181,8 @@ foreach ($version in $json.Swagger.SupportedVersions) {
     $copy | ConvertTo-Json -Depth 20 | Set-Content ".\swagger.json"
 
     if ($DryRun.IsPresent) {
-        Move-Item ".\swagger.json" ".\swagger$TargetStage.json"
-        Write-Host "File .\swagger$TargetStage.json was generated."
+        Copy-Item ".\swagger.json" ".\swagger.$TargetStage.$targetApiVersion.json"
+        Write-Host "File .\swagger.$TargetStage.$targetApiVersion.json was generated."
         continue
     }
 
