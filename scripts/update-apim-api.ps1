@@ -1,4 +1,4 @@
-# Shortcut for the Start-Sleep which takes seconds only.
+# Automatically updates revisions and OpenAPI on Azure API management
 #
 # NOTES
 #
@@ -10,6 +10,7 @@
 # - The Get-AzContext is set to the correct service principal on the target subscription
 # - Swagger is configured using the app settings section from project Khan
 #
+# A file result.txt will be generated. If it contains 'Success' then this means that everything went well
 # EXIT CODES
 #
 # 0 success
@@ -51,10 +52,17 @@ param (
     [string]
     $ApiManagementResourceGroup,
     [Parameter(Mandatory = $false)]
+    [string]
+    $OutputDirectory,
+    [Parameter(Mandatory = $false)]
     [switch]
-    $DryRun
+    $DryRun,
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $SkipResultFile
 )
 
+$ErrorActionPreference = 'Stop'
 
 function CheckDotnetTool() {
     # This ensures that the dotnet swashbuckle CLI is installed on the computer.
@@ -75,16 +83,19 @@ function GenerateSwagger($version) {
     Write-Host "Generating swagger document for version $version..." -NoNewline
     $projFiles = Get-ChildItem -File *.csproj
     $projFile = $projFiles[0]
+    $tmpFile = "$projFile.tmp"
+    Copy-Item $projFile $tmpFile
     $origContent = Get-Content -Raw $projFile
-    $path = $origContent -match '<DocumentationFile>(.*).xml'
+    $origContent -match '<DocumentationFile>(.*).xml'
     $match = $Matches[1]
     $parts = $match.Split("\")
     $file = $parts[-1]
     $match = $match.Replace($file, "dotnet-swagger")
     $content = $origContent.Replace($Matches[1], $match)
     $content | Out-File $projFile
+    dotnet build -c Debug $PWD
     swagger tofile --output swagger.json .\bin\Debug\net6.0\Laker.Services.ReadApi.dll $targetApiVersion
-    $origContent | Out-File $version
+    Move-Item $tmpFile $projFile -Force
     Write-Host "Done"
 }
 
@@ -132,6 +143,7 @@ function TransformJson() {
 
 CheckDotnetTool
 
+$output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 $TargetStage = $TargetStage.toLowerInvariant()
 $performUpdate = $false
 $apiIdStage = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
@@ -173,8 +185,8 @@ foreach ($version in $json.Swagger.SupportedVersions) {
 
     if ($DryRun.IsPresent) {
         # thats it for this version -> don't actually do anything
-        Copy-Item ".\swagger.json" ".\swagger.$TargetStage.$targetApiVersion.json"
-        Write-Host "File .\swagger.$TargetStage.$targetApiVersion.json was generated."
+        Copy-Item ".\swagger.json" "$output\swagger.$TargetStage.$targetApiVersion.json"
+        Write-Host "File $output\swagger.$TargetStage.$targetApiVersion.json was generated."
         continue
     }
 
@@ -261,8 +273,15 @@ foreach ($version in $json.Swagger.SupportedVersions) {
     Write-Host "Handling of API version $targetApiVersion succeeded."
 }
 
+# delete the result file
+if (Test-Path -Path swagger.json) {
+    Remove-Item swagger.json
+}
+
 # write success in result file
-"Success" | Out-File $resultFile
+if (!$SkipResultFile.IsPresent) {
+    "Success" | Out-File $resultFile
+}
 
 Write-Host "🆗"
 
