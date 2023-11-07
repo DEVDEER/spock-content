@@ -16,10 +16,7 @@
 # 0 success
 # 8 could not retrieve swagger from endpoint
 # Example
-# ./update-apim-api.ps1 -TargetStage prod -CompanyShortKey dd -ProjectName MyDevOpsName -ApiName MyMarketingName -AdditionalName core
-# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName MyDevOpsName -ApiName MyMarketingName -AdditionalName core
-# ./update-apim-api.ps1 -TargetStage prod -CompanyShortKey dd -ProjectName MyDevOpsName -ApiName MyMarketingName -AdditionalName core -IgnoreIpRestrictions
-#
+# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName TECHNICAL_NAME -ApiName MARKETING_NAME  -AdditionalName read -ApiManagementResourceGroup rg-api -ApiManagementName apim-dd-shared -DryRun -OutputDirectory d:\temp -SkipResultFile
 # Copyright DEVDEER GmbH 2023
 # Latest update: 2023-11-07
 
