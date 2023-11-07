@@ -51,107 +51,56 @@ param (
     [string]
     $ApiManagementResourceGroup,
     [Parameter(Mandatory = $false)]
-    [string]
-    $ApiManagementSubscriptionId,
-    [switch]
-    $IgnoreIpRestrictions,
     [switch]
     $DryRun
 )
 
-function Add-IpRestrictionExcemption($resourceGroup, $appName, $ipAddress) {
-    Write-Host "Adding IP restriction rule for web app '$appName' for IP '$ipAddress' ... " -NoNewline
-    Add-AzWebAppAccessRestrictionRule `
-        -ResourceGroupName $resourceGroup `
-        -WebAppName $appName `
-        -Name 'AllowPipelineAgent' `
-        -Priority 4 `
-        -Action Allow `
-        -IpAddress $ipAddress
-    Write-Host "Done"
-}
 
-function Remove-IpRestrictionExcemption($resourceGroup, $appName) {
-    Write-Host "Adding IP restriction rule for web app '$appName'... " -NoNewline
-    Remove-AzWebAppAccessRestrictionRule `
-        -ResourceGroupName $resourceGroup `
-        -WebAppName $appName `
-        -Name 'AllowPipelineAgent'
-    Write-Host "Done"
-}
-
-$TargetStage = $TargetStage.toLowerInvariant()
-$performUpdate = $false
-$apiIdStage = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
-$resultFile = "result.txt"
-$technicalProjectName = $ProjectName.ToLowerInvariant()
-$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName : '')"
-$azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
-$webAppName = "api-$azureNamePart"
-$webAppFullRoot = "https://$webAppName.azurewebsites.net"
-$ipAddress = (Invoke-WebRequest -uri "http://api.ipify.org?format=text").Content
-$webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
-$handleIpExcemption = !($DryRun.IsPresent) -and !(IgnoreIpRestrictions.IsPresent) -and $TargetStage -ne $MinStage
-$resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
-$apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
-
-Write-Host "Stage is set to '$TargetStage'."
-Write-Host "Current IP address is '$ipAddress'."
-Write-Host "Targeted Azure resource are $apiMgmtName in $resourceGroup and $webAppFullRoot in group $webAppResourceGroup."
-
-Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
-$content = Get-Content appsettings.json
-$json = $content | ConvertFrom-Json
-Write-Host "Done"
-
-# We will parse the appSettings.json for every supported API version and update it`s information
-# in API Management. We need to do this for "old" APIs too.
-foreach ($version in $json.Swagger.SupportedVersions) {
-    $targetApiVersion = "v$($version.Major)"
-    Write-Host "Starting handling of API version $targetApiVersion."
-
-    # delete the result file
-    if (Test-Path -Path $resultFile) {
-        Remove-Item $resultFile
-    }
-
-    # add restriction if not on min
-    if ($handleIpExcemption) {
-        Add-IpRestrictionExcemption($webAppResourceGroup, $webAppName, $ipAddress)
-    }
-
-    # wait for some time to enable the restriction to take effect
-    Start-Sleep -Seconds 5
-
-    # download the swagger json from the stage
-    try {
-        $url = "$webAppFullRoot/swagger/$targetApiVersion/swagger.json"
-        Write-Host "Retrieving Swagger from '$TargetStage' stage for API version '$targetApiVersion' ($url) ... " -NoNewline
-        Invoke-WebRequest -Uri $url -Outfile swagger.json
+function CheckDotnetTool() {
+    # This ensures that the dotnet swashbuckle CLI is installed on the computer.
+    if (!(Test-Path ~\.dotnet\tools\swagger.exe)) {
+        Write-Host "Swashbuckle global tool not found. Installing..." -NoNewline
+        dotnet tool install -g Swashbuckle.AspNetCore.Cli
         Write-Host "Done"
+    } else {
+        Write-Host "Swashbuckle global tool found."
     }
-    catch {
-        $ErrorMessage = $_.Exception.Message
-        $FailedItem = $_.Exception.ItemName
-        Write-Host "Error: $ErrorMessage on $FailedItem for url $url"
-        exit 8
-    }
-    finally {
-        if ($handleIpExcemption) {
-            Remove-IpRestrictionExcemption($webAppResourceGroup, $webAppName)
-        }
-    }
+}
 
-    Write-Host "Replacing Swagger information for target stage '$TargetStage' ... " -NoNewline
+function GenerateSwagger($version) {
+    # This ensures that "dotnet-swagger.xml" is placed as the documentation file in the csproj and
+    # then executes the swagger dotnet cli (https://github.com/domaindrivendev/Swashbuckle.AspNetCore#swashbuckleaspnetcorecli).
+    # The replacement is needed because the tooling will change the executable assembly to itself and then
+    # it fails if the name is not replace beforehand.
+    Write-Host "Generating swagger document for version $version..." -NoNewline
+    $projFiles = Get-ChildItem -File *.csproj
+    $projFile = $projFiles[0]
+    $origContent = Get-Content -Raw $projFile
+    $path = $origContent -match '<DocumentationFile>(.*).xml'
+    $match = $Matches[1]
+    $parts = $match.Split("\")
+    $file = $parts[-1]
+    $match = $match.Replace($file, "dotnet-swagger")
+    $content = $origContent.Replace($Matches[1], $match)
+    $content | Out-File $projFile
+    swagger tofile --output swagger.json .\bin\Debug\net6.0\Laker.Services.ReadApi.dll $targetApiVersion
+    $origContent | Out-File $version
+    Write-Host "Done"
+}
+
+function SwapSwaggerMetadata($stage, $apiIdStage, $projectName, $apiName, $apiVersion) {
+    Write-Host "Replacing Swagger information for target stage '$stage' ... " -NoNewline
     $content = Get-Content -Raw swagger.json
     $targetSwaggerJson = $content | ConvertFrom-Json -Depth 100
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($TargetStage, $apiIdStage)
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($ProjectName, $ApiName)
+    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($stage, $apiIdStage)
+    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($projectName, $apiName)
     $content = $targetSwaggerJson | ConvertTo-Json -Depth 100
-    $content = $content.Replace("api/$targetApiVersion/", "")
+    $content = $content.Replace("api/$apiVersion/", "")
     Set-Content swagger.json $content
     Write-Host "Done"
+}
 
+function TransformJson() {
     # This is not fully understood. We are converting the complete swagger.json to a set
     # of nested POSH hashtables because ConvertFrom-Json is otherwise unable to understand
     # the dictionary structure of the JSON. This is supposed to do the following:
@@ -179,8 +128,51 @@ foreach ($version in $json.Swagger.SupportedVersions) {
         }
     }
     $copy | ConvertTo-Json -Depth 20 | Set-Content ".\swagger.json"
+}
+
+CheckDotnetTool
+
+$TargetStage = $TargetStage.toLowerInvariant()
+$performUpdate = $false
+$apiIdStage = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
+$resultFile = "result.txt"
+$technicalProjectName = $ProjectName.ToLowerInvariant()
+$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName : '')"
+$azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
+$webAppName = "api-$azureNamePart"
+$webAppFullRoot = "https://$webAppName.azurewebsites.net"
+$webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
+$resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
+$apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
+
+Write-Host "Stage is set to '$TargetStage'."
+Write-Host "Targeted Azure resource are $apiMgmtName in $resourceGroup and $webAppFullRoot in group $webAppResourceGroup."
+
+Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
+$content = Get-Content appsettings.json
+$json = $content | ConvertFrom-Json
+Write-Host "Done"
+
+# We will parse the appSettings.json for every supported API version and update it`s information
+# in API Management. We need to do this for "old" APIs too.
+foreach ($version in $json.Swagger.SupportedVersions) {
+    $targetApiVersion = "v$($version.Major)"
+    Write-Host "Starting handling of API version $targetApiVersion."
+
+    # delete the result file
+    if (Test-Path -Path $resultFile) {
+        Remove-Item $resultFile
+    }
+
+    # generate swagger json document
+    GenerateSwagger($targetApiVersion)
+    # do replacements
+    SwapSwaggerMetadata($TargetStage, $apiIdStage, $ProjectName, $ApiName, $targetApiVersion)
+    # transform the structure of json file
+    TransformJson
 
     if ($DryRun.IsPresent) {
+        # thats it for this version -> don't actually do anything
         Copy-Item ".\swagger.json" ".\swagger.$TargetStage.$targetApiVersion.json"
         Write-Host "File .\swagger.$TargetStage.$targetApiVersion.json was generated."
         continue
