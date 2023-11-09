@@ -189,6 +189,10 @@ if ($UseExistingSwaggerFiles.IsPresent) {
     if (!(Test-Path -Filter $swaggerFilePattern $PWD)) {
         throw "No files with pattern $swaggerFilePattern where found under $PWD"
     }
+} else {
+    if ($AssemblyName.Length -eq 0) {
+        throw "You need to define AssemblyName if no UseExistingSwaggerFiles is no set!"
+    }
 }
 
 if (!$UseExistingSwaggerFiles.IsPresent) {
