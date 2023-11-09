@@ -215,17 +215,19 @@ if ($DryRun.IsPresent) {
     Write-Host "Targeted Azure resource are '$apiMgmtName' in '$resourceGroup' and '$webAppFullRoot' in group '$webAppResourceGroup'."
 }
 
-Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
-$settingsFile = "$PWD/appsettings.json"
-$content = Get-Content -Raw $settingsFile
-$json = $content | ConvertFrom-Json -Depth 10
-$versions = $json.Swagger.SupportedVersions
-$versionsAmount = ($versions | Measure-Object).Count
-Write-Host "Done. Found $versionsAmount versions."
+if (!$UseExistingSwaggerFiles.IsPresent) {
+    Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
+    $settingsFile = "$PWD/appsettings.json"
+    $content = Get-Content -Raw $settingsFile
+    $json = $content | ConvertFrom-Json -Depth 10
+    $versions = $json.Swagger.SupportedVersions
+    $versionsAmount = ($versions | Measure-Object).Count
+    Write-Host "Done. Found $versionsAmount versions."
 
-if ($versionsAmount -eq 0) {
-    Write-Host $content
-    throw "No API versions found in $settingsFile."
+    if ($versionsAmount -eq 0) {
+        Write-Host $content
+        throw "No API versions found in $settingsFile."
+    }
 }
 
 # We will parse the appSettings.json for every supported API version and update it`s information
