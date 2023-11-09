@@ -208,9 +208,10 @@ $settingsFile = "$PWD/appsettings.json"
 $content = Get-Content $settingsFile
 $json = $content | ConvertFrom-Json
 $versions = $json.Swagger.SupportedVersions
-Write-Host "Done. Found $($versions.Length) versions."
+$versionsAmount = ($versions | Measure-Object).Count
+Write-Host "Done. Found $versionsAmount versions."
 
-if ($versions.Length -eq 0) {
+if ($versionsAmount -eq 0) {
     Write-Host $json
     throw "No API versions found in $settingsFile."
 }
