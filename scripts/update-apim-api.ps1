@@ -270,7 +270,7 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
-    Write-Host "Importing API for '$revision' in version set '$currentVersionSetId'... " -NoNewline
+    Write-Host "Importing API for '$revision' into version set '$currentVersionSetId'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
         -ApiId $apiId `
