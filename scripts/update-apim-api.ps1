@@ -186,10 +186,12 @@ $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$Com
 
 $swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 if ($UseExistingSwaggerFiles.IsPresent) {
+    # caller has somehow ensured that swagger*.json files in the correct pattern are present at the PWD
     if (!(Test-Path -Filter $swaggerFilePattern $PWD)) {
         throw "No files with pattern $swaggerFilePattern where found under $PWD"
     }
 } else {
+    # caller does not provide swagger json files
     if ($AssemblyName.Length -eq 0) {
         throw "You need to define AssemblyName if no UseExistingSwaggerFiles is no set!"
     }
