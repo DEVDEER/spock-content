@@ -176,7 +176,7 @@ $performUpdate = $false
 $fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
-$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName : '')"
+$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
 $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
 $webAppName = "api-$azureNamePart"
 $webAppFullRoot = "https://$webAppName.azurewebsites.net"
@@ -218,6 +218,8 @@ if ($DryRun.IsPresent) {
 Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
 $settingsFile = "$PWD/appsettings.json"
 if (!(Test-Path $settingsFile)) {
+    # We don't have an appsettings.json here. In CI this is normal because we should run inside of the project folder. This
+    # means that we are currently not in a CI pipeline.
     $settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
 }
 Write-Host "Reading $settingsFile..."
@@ -236,7 +238,7 @@ if ($versionsAmount -eq 0) {
 # in API Management. We need to do this for "old" APIs too.
 foreach ($version in $versions) {
     $targetApiVersion = "v$($version.Major)"
-    $apiId = "$prefix-$($fullStageName)-v$($version.Major)"
+    $apiId = "$prefix-$($TargetStage)-v$($version.Major)"
     $swaggerFile = "$output/$($swaggerFilePattern.Replace("*", $targetApiVersion))"
 
     Write-Host "`n------------------------------------------------------------------------------"
