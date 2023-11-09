@@ -149,8 +149,8 @@ function TransformJson() {
     # We do this so that the resulting APIM documentation will display the operation ids as
     # the name of the methods and not the default summaries from .NET comments which should be
     # the descriptions instead.
-    $json = Get-Content ".\swagger.json" -Raw | ConvertFrom-Json -Depth 20 -AsHashtable
-    $copy = Get-Content ".\swagger.json" -Raw | ConvertFrom-Json -Depth 20 -AsHashtable
+    $json = Get-Content swagger.json -Raw | ConvertFrom-Json -Depth 20 -AsHashtable
+    $copy = Get-Content swagger.json -Raw | ConvertFrom-Json -Depth 20 -AsHashtable
     foreach ($endpointPath in $json.paths.Keys) {
         foreach ($methods in $json.paths[$endpointPath]) {
             foreach ($method in $methods) {
@@ -167,7 +167,7 @@ function TransformJson() {
             $copy.paths[$endpointPath] = $result
         }
     }
-    $copy | ConvertTo-Json -Depth 20 | Set-Content ".\swagger.json"
+    $copy | ConvertTo-Json -Depth 20 | Set-Content swagger.json
 }
 
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
