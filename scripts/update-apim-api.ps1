@@ -189,7 +189,7 @@ if ($UseExistingSwaggerFiles.IsPresent) {
     # caller has somehow ensured that swagger*.json files in the correct pattern are present at the PWD
     Write-Host "Caller wants to use existing swagger files. Checking..."
     if (!(Test-Path -Filter $swaggerFilePattern $PWD)) {
-        throw "No files with pattern $swaggerFilePattern where found under $PWD"
+        throw "No files with pattern '$swaggerFilePattern' where found under $PWD"
     }
     Write-Host "Using existing swagger files:"
     $files = Get-ChildItem -File -Filter $swaggerFilePattern $PWD
