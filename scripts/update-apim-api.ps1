@@ -210,7 +210,7 @@ $json = $content | ConvertFrom-Json
 $versions = $json.Swagger.SupportedVersions
 Write-Host "Done. Found $($versions.Length) versions."
 
-if ($versions.Length -le 1) {
+if ($versions.Length -eq 0) {
     Write-Host $json
     throw "No API versions found in $settingsFile."
 }
