@@ -60,6 +60,9 @@ param (
     $ApiManagementResourceGroup,
     [Parameter(Mandatory = $false)]
     [string]
+    $ApiManagementSubscriptionId,
+    [Parameter(Mandatory = $false)]
+    [string]
     $AssemblyName,
     [Parameter(Mandatory = $false)]
     [string]
@@ -234,6 +237,25 @@ if ($versionsAmount -eq 0) {
     throw "No API versions found in $settingsFile."
 }
 
+if (!$DryRun.IsPresent) {
+    $currentSubscription = (Get-AzContext).Subscription.Id
+    $switchSub = $false
+    if ($ApiManagementSubscriptionId.Length -gt 0 -and $currentSubscription -ne $ApiManagementSubscriptionId) {
+        Write-Host "Setting Azure context to subscription $ApiManagementSubscriptionId..." -NoNewline
+        Set-AzContext -SubscriptionId $ApiManagementSubscriptionId
+        Write-Host "Done"
+        $switchSub = $true
+    }
+    Write-Host "Setting API Management context for API ID '$apiId' on '$resourceGroup/$apiMgmtName'... " -NoNewline
+    $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
+    Write-Host "Done"
+    if ($switchSub) {
+        Write-Host "Setting Azure context to subscription $currentSubscription..." -NoNewline
+        Set-AzContext -SubscriptionId $currentSubscription
+        Write-Host "Done"
+    }
+}
+
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
 foreach ($version in $versions) {
@@ -270,10 +292,6 @@ foreach ($version in $versions) {
         continue
     }
 
-    Write-Host "Setting API Management context for API ID '$apiId' ... " -NoNewline
-    $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
-    Write-Host "Done"
-
     Write-Host "Retrieving information for API ID '$apiId' ... " -NoNewline
     try {
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
@@ -281,7 +299,7 @@ foreach ($version in $versions) {
     catch {
         # we should try a different ID because some APIs do not have the version tag in it
         $apiId = $azureNamePart
-        Write-Host "Retry with new API ID '$apiId' ... " -NoNewline
+        Write-Host "Retry with new API ID '$apiId'... " -NoNewline
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
     }
 
@@ -320,7 +338,7 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
-    Write-Host "Making revision '$revision' default ... " -NoNewline
+    Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
         -Context $ctx `
         -ApiId $apiId `
@@ -339,7 +357,7 @@ foreach ($version in $versions) {
     Write-Host "Done"
 
     $backendUrl = "$webAppFullRoot/api/$targetApiVersion"
-    Write-Host "Resetting backend API url to '$backendUrl' default ... " -NoNewline
+    Write-Host "Resetting backend API url to '$backendUrl' default... " -NoNewline
     Set-AzApiManagementApi `
         -Context $ctx `
         -ApiId $apiId `
