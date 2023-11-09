@@ -239,21 +239,14 @@ if ($versionsAmount -eq 0) {
 
 if (!$DryRun.IsPresent) {
     $currentSubscription = (Get-AzContext).Subscription.Id
-    $switchSub = $false
     if ($ApiManagementSubscriptionId.Length -gt 0 -and $currentSubscription -ne $ApiManagementSubscriptionId) {
         Write-Host "Setting Azure context to subscription $ApiManagementSubscriptionId..." -NoNewline
-        Set-AzContext -SubscriptionId $ApiManagementSubscriptionId
+        Set-AzContext -SubscriptionId $ApiManagementSubscriptionId | Out-Null
         Write-Host "Done"
-        $switchSub = $true
     }
-    Write-Host "Setting API Management context for API ID '$apiId' on '$resourceGroup/$apiMgmtName'... " -NoNewline
+    Write-Host "Setting API Management context for API management '$resourceGroup/$apiMgmtName'... " -NoNewline
     $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
     Write-Host "Done"
-    if ($switchSub) {
-        Write-Host "Setting Azure context to subscription $currentSubscription..." -NoNewline
-        Set-AzContext -SubscriptionId $currentSubscription
-        Write-Host "Done"
-    }
 }
 
 # We will parse the appSettings.json for every supported API version and update it`s information
