@@ -244,9 +244,6 @@ if (!$DryRun.IsPresent) {
         Set-AzContext -SubscriptionId $ApiManagementSubscriptionId | Out-Null
         Write-Host "Done"
     }
-    Write-Host "Setting API Management context for API management '$resourceGroup/$apiMgmtName'... " -NoNewline
-    $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
-    Write-Host "Done"
 }
 
 # We will parse the appSettings.json for every supported API version and update it`s information
@@ -285,12 +282,19 @@ foreach ($version in $versions) {
         continue
     }
 
+    if (!$ctx) {
+        Write-Host "Setting API Management context for API management '$resourceGroup/$apiMgmtName'... " -NoNewline
+        $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
+        Write-Host "Done"
+    }
+
     Write-Host "Retrieving information for API ID '$apiId' ... " -NoNewline
     try {
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
     }
     catch {
         # we should try a different ID because some APIs do not have the version tag in it
+        Write-Host "Error"
         $apiId = $azureNamePart
         Write-Host "Retry with new API ID '$apiId'... " -NoNewline
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
