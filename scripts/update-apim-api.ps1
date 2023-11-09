@@ -17,7 +17,15 @@
 # 0 success
 # 8 could not retrieve swagger from endpoint
 # Example
-# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName TECHNICAL_NAME -ApiName MARKETING_NAME  -AdditionalName read -ApiManagementResourceGroup rg-api -ApiManagementName apim-dd-shared -DryRun -OutputDirectory d:\temp -SkipResultFile
+#
+# If you want to perform all steps (swagger and update) in 1 step:
+# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName TECHNICAL_NAME -ApiName MARKETING_NAME -AdditionalName read -AssemblyName NAME_OF_DLL_WITHOUT_DLL -OutputDirectory d:\temp -SkipResultFile -DryRun
+#
+# If you want to create a file in the output dir with "swagger.PROJECT.ADDITIONAL_NAME.STAGE.VERSION.json"pattern (USE THIS IN CI PIPELINES)
+# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName TECHNICAL_NAME -ApiName MARKETING_NAME -AdditionalName read -AssemblyName NAME_OF_DLL_WITHOUT_DLL -OutputDirectory d:\temp -SkipResultFile
+#
+# If you already have a file in the PWD with "swagger.PROJECT.ADDITIONAL_NAME.STAGE.VERSION.json" pattern (USE THIS IN CD PIPELINES)
+# ./update-apim-api.ps1 -TargetStage test -MinStage test -CompanyShortKey dd -ProjectName TECHNICAL_NAME -ApiName MARKETING_NAME -AdditionalName read -ApiManagementResourceGroup rg-api -ApiManagementName apim-dd-shared -UseExistingSwaggerFiles
 #
 # Copyright DEVDEER GmbH 2023
 # Latest update: 2023-11-07
@@ -52,7 +60,12 @@ param (
     $ApiManagementResourceGroup,
     [Parameter(Mandatory = $false)]
     [string]
+    $AssemblyName,
+    [Parameter(Mandatory = $false)]
+    [string]
     $OutputDirectory,
+    [Switch]
+    $UseExistingSwaggerFiles,
     [Parameter(Mandatory = $false)]
     [switch]
     $DryRun,
@@ -76,7 +89,8 @@ function CheckDotnetTool() {
 
 function GenerateSwagger() {
     param (
-        $ApiVersion
+        $ApiVersion,
+        $AssemblyName
     )
     # This ensures that "dotnet-swagger.xml" is placed as the documentation file in the csproj and
     # then executes the swagger dotnet cli (https://github.com/domaindrivendev/Swashbuckle.AspNetCore#swashbuckleaspnetcorecli).
@@ -95,11 +109,13 @@ function GenerateSwagger() {
     $match = $match.Replace($file, "dotnet-swagger")
     $content = $origContent.Replace($Matches[1], $match)
     $content | Out-File $projFile
+
     Write-Host "Building project ..." -NoNewline
-    dotnet build -c Debug $PWD | Out-Null
+    dotnet build -c Release -o build $PWD | Out-Null
     Write-Host "Done"
+
     Write-Host "Generating swagger.json ..." -NoNewline
-    swagger tofile --output swagger.json .\bin\Debug\net6.0\Laker.Services.ReadApi.dll $targetApiVersion | Out-Null
+    swagger tofile --output swagger.json "./build/$assemblyName.dll" $targetApiVersion | Out-Null
     Write-Host "Done"
     Move-Item $tmpFile $projFile -Force
     Write-Host "Swagger document created"
@@ -154,8 +170,6 @@ function TransformJson() {
     $copy | ConvertTo-Json -Depth 20 | Set-Content ".\swagger.json"
 }
 
-CheckDotnetTool
-
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 $TargetStage = $TargetStage.toLowerInvariant()
 $performUpdate = $false
@@ -169,6 +183,17 @@ $webAppFullRoot = "https://$webAppName.azurewebsites.net"
 $webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
 $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
+
+$swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
+if ($UseExistingSwaggerFiles.IsPresent) {
+    if (!(Test-Path -Filter $swaggerFilePattern $PWD)) {
+        throw "No files with pattern $swaggerFilePattern where found under $PWD"
+    }
+}
+
+if (!$UseExistingSwaggerFiles.IsPresent) {
+    CheckDotnetTool
+}
 
 Write-Host "Stage is set to '$TargetStage'."
 Write-Host "Targeted Azure resource are '$apiMgmtName' in '$resourceGroup' and '$webAppFullRoot' in group '$webAppResourceGroup'."
@@ -189,28 +214,32 @@ if ($versions.Length -le 1) {
 foreach ($version in $versions) {
     $targetApiVersion = "v$($version.Major)"
     $apiId = "$prefix-$($fullStageName)-v$($version.Major)"
+    $swaggerFile = "$output/$($swaggerFilePattern.Replace("*", $targetApiVersion))"
 
     Write-Host "`n------------------------------------------------------------------------------"
     Write-Host "Starting handling of API version '$targetApiVersion' with assumed id '$apiId'."
     Write-Host "------------------------------------------------------------------------------`n"
 
-    # delete the result file
-    if (Test-Path -Path $resultFile) {
-        Remove-Item $resultFile
-    }
+    if (!$UseExistingSwaggerFiles.IsPresent) {
+        # delete the result file
+        if (Test-Path -Path $resultFile) {
+            Remove-Item $resultFile
+        }
 
-    # generate swagger json document
-    GenerateSwagger -ApiVersion $TargetApiVersion
-    # do replacements
-    SwapSwaggerMetadata -Stage $TargetStage -FullStageName $fullStageName -ProjectName $ProjectName -ApiName $ApiName -ApiVersion $targetApiVersion
-    # transform the structure of json file
-    TransformJson
+        # generate swagger json document
+        GenerateSwagger -ApiVersion $TargetApiVersion -AssemblyName $AssemblyName
+        # do replacements
+        SwapSwaggerMetadata -Stage $TargetStage -FullStageName $fullStageName -ProjectName $ProjectName -ApiName $ApiName -ApiVersion $targetApiVersion
+        # transform the structure of json file
+        TransformJson
+
+        Copy-Item ".\swagger.json" $swaggerFile
+        Write-Host "File '$swaggerFile' was generated."
+    }
 
     if ($DryRun.IsPresent) {
         # thats it for this version -> don't actually do anything
-        $outputFile = "$output\swagger.$($ProjectName.ToLowerInvariant()).$($TargetStage.ToLowerInvariant()).$targetApiVersion.json"
-        Copy-Item ".\swagger.json" $outputFile
-        Write-Host "File '$outputFile' was generated."
+        Write-Host "Skipping because of dry run."
         continue
     }
 
@@ -278,7 +307,7 @@ foreach ($version in $versions) {
         -ApiVersionSetId $currentVersionSetId `
         -ApiRevision $revision `
         -SpecificationFormat "OpenApi" `
-        -SpecificationPath swagger.json `
+        -SpecificationPath $swaggerFile `
         -Path $api.Path | Out-Null
     Write-Host "Done"
 
