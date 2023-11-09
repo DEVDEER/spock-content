@@ -9,6 +9,7 @@
 # - App Service is named api-[SHORT_KEY]-[PROJECT_NAME]-[ADDITIONAL-NAME]-[STAGE_NAME].azurewebsites.net in rg-[PROJECT_NAME]-[STAGE_NAME]
 # - The Get-AzContext is set to the correct service principal on the target subscription
 # - Swagger is configured using the app settings section from project Khan
+# - API Ids are build in this way: [COMPANY_SHORT]-[PROJECT_NAME]-[ADDITIONAL_NAME]-[STAGE_SHORT_NAME]
 #
 # A file result.txt will be generated. If it contains 'Success' then this means that everything went well
 # EXIT CODES
@@ -73,38 +74,52 @@ function CheckDotnetTool() {
     }
 }
 
-function GenerateSwagger($version) {
+function GenerateSwagger() {
+    param (
+        $ApiVersion
+    )
     # This ensures that "dotnet-swagger.xml" is placed as the documentation file in the csproj and
     # then executes the swagger dotnet cli (https://github.com/domaindrivendev/Swashbuckle.AspNetCore#swashbuckleaspnetcorecli).
     # The replacement is needed because the tooling will change the executable assembly to itself and then
     # it fails if the name is not replace beforehand.
-    Write-Host "Generating swagger document for version $version..." -NoNewline
+    Write-Host "Generating swagger document for version '$ApiVersion'..."
     $projFiles = Get-ChildItem -File *.csproj
     $projFile = $projFiles[0]
     $tmpFile = "$projFile.tmp"
     Copy-Item $projFile $tmpFile
     $origContent = Get-Content -Raw $projFile
-    $origContent -match '<DocumentationFile>(.*).xml'
+    $origContent -match '<DocumentationFile>(.*).xml' | Out-Null
     $match = $Matches[1]
     $parts = $match.Split("\")
     $file = $parts[-1]
     $match = $match.Replace($file, "dotnet-swagger")
     $content = $origContent.Replace($Matches[1], $match)
     $content | Out-File $projFile
-    dotnet build -c Debug $PWD
-    swagger tofile --output swagger.json .\bin\Debug\net6.0\Laker.Services.ReadApi.dll $targetApiVersion
-    Move-Item $tmpFile $projFile -Force
+    Write-Host "Building project ..." -NoNewline
+    dotnet build -c Debug $PWD | Out-Null
     Write-Host "Done"
+    Write-Host "Generating swagger.json ..." -NoNewline
+    swagger tofile --output swagger.json .\bin\Debug\net6.0\Laker.Services.ReadApi.dll $targetApiVersion | Out-Null
+    Write-Host "Done"
+    Move-Item $tmpFile $projFile -Force
+    Write-Host "Swagger document created"
 }
 
-function SwapSwaggerMetadata($stage, $apiIdStage, $projectName, $apiName, $apiVersion) {
-    Write-Host "Replacing Swagger information for target stage '$stage' ... " -NoNewline
+function SwapSwaggerMetadata() {
+    param (
+        $Stage,
+        $FullStageName,
+        $ProjectName,
+        $ApiName,
+        $ApiVersion
+    )
+    Write-Host "Replacing Swagger information for target stage '$Stage'... " -NoNewline
     $content = Get-Content -Raw swagger.json
     $targetSwaggerJson = $content | ConvertFrom-Json -Depth 100
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($stage, $apiIdStage)
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($projectName, $apiName)
+    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($Stage, $FullStageName)
+    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($ProjectName, $ApiName)
     $content = $targetSwaggerJson | ConvertTo-Json -Depth 100
-    $content = $content.Replace("api/$apiVersion/", "")
+    $content = $content.Replace("api/$ApiVersion/", "")
     Set-Content swagger.json $content
     Write-Host "Done"
 }
@@ -144,7 +159,7 @@ CheckDotnetTool
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 $TargetStage = $TargetStage.toLowerInvariant()
 $performUpdate = $false
-$apiIdStage = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
+$fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName : '')"
@@ -156,18 +171,28 @@ $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResour
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
 
 Write-Host "Stage is set to '$TargetStage'."
-Write-Host "Targeted Azure resource are $apiMgmtName in $resourceGroup and $webAppFullRoot in group $webAppResourceGroup."
+Write-Host "Targeted Azure resource are '$apiMgmtName' in '$resourceGroup' and '$webAppFullRoot' in group '$webAppResourceGroup'."
+Write-Host "Targeted API id is '$apiId'."
 
 Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
 $content = Get-Content appsettings.json
 $json = $content | ConvertFrom-Json
-Write-Host "Done"
+$versions = $json.Swagger.SupportedVersions
+Write-Host "Done. Found $($versions.Length) versions."
+
+if ($versions.Length -le 1) {
+    throw "No versions found in appsettings.json."
+}
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
-foreach ($version in $json.Swagger.SupportedVersions) {
+foreach ($version in $versions) {
     $targetApiVersion = "v$($version.Major)"
-    Write-Host "Starting handling of API version $targetApiVersion."
+    $apiId = "$prefix-$($fullStageName)-v$($version.Major)"
+
+    Write-Host "`n------------------------------------------------------------------------------"
+    Write-Host "Starting handling of API version '$targetApiVersion' with assumed id '$apiId'."
+    Write-Host "------------------------------------------------------------------------------`n"
 
     # delete the result file
     if (Test-Path -Path $resultFile) {
@@ -175,16 +200,16 @@ foreach ($version in $json.Swagger.SupportedVersions) {
     }
 
     # generate swagger json document
-    GenerateSwagger($targetApiVersion)
+    GenerateSwagger -ApiVersion $TargetApiVersion
     # do replacements
-    SwapSwaggerMetadata($TargetStage, $apiIdStage, $ProjectName, $ApiName, $targetApiVersion)
+    SwapSwaggerMetadata -Stage $TargetStage -FullStageName $fullStageName -ProjectName $ProjectName -ApiName $ApiName -ApiVersion $targetApiVersion
     # transform the structure of json file
     TransformJson
 
     if ($DryRun.IsPresent) {
         # thats it for this version -> don't actually do anything
         Copy-Item ".\swagger.json" "$output\swagger.$TargetStage.$targetApiVersion.json"
-        Write-Host "File $output\swagger.$TargetStage.$targetApiVersion.json was generated."
+        Write-Host "File '$output\swagger.$TargetStage.$targetApiVersion.json' was generated."
         continue
     }
 
@@ -218,10 +243,10 @@ foreach ($version in $json.Swagger.SupportedVersions) {
         -Context $ctx `
         -ApiId $apiId `
         -ApiRevision $currentRevision `
-        -SpecificationFormat "OpenApiJson" | Out-File swagger.online.json
+        -SpecificationFormat "OpenApiJson" | Out-File swagger.online.json | Out-Null
     Write-Host "Done"
 
-    Write-Host "Detecting API changes..."
+    Write-Host "Detecting API changes..." -NoNewline
     #TODO Implement version change step
     $performUpdate = $true
     Write-Host "Done"
@@ -231,18 +256,18 @@ foreach ($version in $json.Swagger.SupportedVersions) {
         return;
     }
 
-    Write-Host "Creating new revision '$revision' ... " -NoNewline
+    Write-Host "Creating new revision '$revision' for version '$targetApiVersion' ... " -NoNewline
     New-AzApiManagementApiRevision `
         -Context $ctx `
         -ApiId $apiId `
-        -ApiRevision $revision
+        -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
     Write-Host "Making revision '$revision' default ... " -NoNewline
     New-AzApiManagementApiRelease `
         -Context $ctx `
         -ApiId $apiId `
-        -ApiRevision $revision
+        -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
     Write-Host "Importing API for '$revision' in version set '$currentVersionSetId'... " -NoNewline
@@ -253,7 +278,7 @@ foreach ($version in $json.Swagger.SupportedVersions) {
         -ApiRevision $revision `
         -SpecificationFormat "OpenApi" `
         -SpecificationPath swagger.json `
-        -Path $api.Path
+        -Path $api.Path | Out-Null
     Write-Host "Done"
 
     $backendUrl = "$webAppFullRoot/api/$targetApiVersion"
@@ -261,7 +286,7 @@ foreach ($version in $json.Swagger.SupportedVersions) {
     Set-AzApiManagementApi `
         -Context $ctx `
         -ApiId $apiId `
-        -ServiceUrl $backendUrl
+        -ServiceUrl $backendUrl | Out-Null
     Write-Host "Done"
 
     # prepare for next run
