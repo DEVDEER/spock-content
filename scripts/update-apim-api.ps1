@@ -216,7 +216,10 @@ if ($DryRun.IsPresent) {
 }
 
 Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
-$settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
+$settingsFile = "$PWD/appsettings.json"
+if (!(Test-Path $settingsFile)) {
+    $settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
+}
 Write-Host "Reading $settingsFile..."
 $content = Get-Content -Raw $settingsFile
 $json = $content | ConvertFrom-Json -Depth 10
