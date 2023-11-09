@@ -208,8 +208,9 @@ foreach ($version in $versions) {
 
     if ($DryRun.IsPresent) {
         # thats it for this version -> don't actually do anything
-        Copy-Item ".\swagger.json" "$output\swagger.$TargetStage.$targetApiVersion.json"
-        Write-Host "File '$output\swagger.$TargetStage.$targetApiVersion.json' was generated."
+        $outputFile = "$output\swagger.$($ProjectName.ToLowerInvariant()).$($TargetStage.ToLowerInvariant()).$targetApiVersion.json"
+        Copy-Item ".\swagger.json" $outputFile
+        Write-Host "File '$outputFile' was generated."
         continue
     }
 
