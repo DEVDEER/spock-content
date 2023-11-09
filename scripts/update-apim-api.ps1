@@ -187,9 +187,16 @@ $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$Com
 $swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 if ($UseExistingSwaggerFiles.IsPresent) {
     # caller has somehow ensured that swagger*.json files in the correct pattern are present at the PWD
+    Write-Host "Caller wants to use existing swagger files. Checking..."
     if (!(Test-Path -Filter $swaggerFilePattern $PWD)) {
         throw "No files with pattern $swaggerFilePattern where found under $PWD"
     }
+    Write-Host "Using existing swagger files:"
+    $files = Get-ChildItem -File -Filter $swaggerFilePattern $PWD
+    foreach ($file in $files) {
+        Write-Host "  $file"
+    }
+
 } else {
     # caller does not provide swagger json files
     if ($AssemblyName.Length -eq 0) {
@@ -247,6 +254,8 @@ foreach ($version in $versions) {
 
         Copy-Item ".\swagger.json" $swaggerFile
         Write-Host "File '$swaggerFile' was generated."
+    } else {
+        Write-Host "Using swagger file $($swaggerFile)."
     }
 
     if ($DryRun.IsPresent) {
