@@ -346,7 +346,7 @@ foreach ($version in $versions) {
         -ApiVersionSetId $currentVersionSetId `
         -ApiRevision $revision `
         -SpecificationFormat "OpenApi" `
-        -SpecificationPath $swaggerFile `
+        -SpecificationPath swagger.online.json `
         -Path $api.Path | Out-Null
     Write-Host "Done"
 
