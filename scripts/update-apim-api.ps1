@@ -122,9 +122,10 @@ function Get-AssemblyName() {
     $file = [System.IO.FileInfo]::new($Filename)
     $assemblyName = $file.Name
     [xml]$content = Get-Content -Raw $Filename
-    $csAssemblyName = $content.Project.PropertyGroup[0].AssemblyName
+    $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
+    $csAssemblyName = $propGroup.AssemblyName
     if ($csAssemblyName.Length -gt 0) {
-        $assemblyName = $content.Project.PropertyGroup[0].AssemblyName
+        $assemblyName = $propGroup.AssemblyName
     }
     return $assemblyName.Trim()
 }
@@ -143,7 +144,7 @@ function Test-ProjectSettings() {
         0 if no element was found, 1 if <DocumentationFile /> was found and 2 if ONLY <GenerateDocumentationFile /> was found.
     #>
     [xml]$content = Get-Content -Raw $Filename
-    $propGroup = $content.Project.PropertyGroup[0]
+    $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
     if ($null -ne $propGroup.DocumentationFile) {
         # <DocumentationFile /> is present and set to true
         return 1
@@ -191,7 +192,8 @@ function Build-Swagger() {
         $tmpFile = ".tmp"
         Copy-Item $Filename $tmpFile
         [xml]$content = Get-Content -Raw $Filename
-        $content.Project.PropertyGroup[0].DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
+        $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
+        $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($Filename)
     }
 
@@ -275,7 +277,8 @@ if ($UseExistingSwaggerFiles.IsPresent) {
         Write-Host "  $file"
     }
 
-} else {
+}
+else {
     # caller does not provide swagger json files
     if ($AssemblyName.Length -eq 0) {
         throw "You need to define AssemblyName if no UseExistingSwaggerFiles is no set!"
@@ -289,7 +292,8 @@ if (!$UseExistingSwaggerFiles.IsPresent) {
 Write-Host "Stage is set to '$TargetStage'."
 if ($DryRun.IsPresent) {
     "Running in dry-mode -> will not update API management"
-} else {
+}
+else {
     Write-Host "Targeted Azure resource are '$apiMgmtName' in '$resourceGroup' and '$webAppFullRoot' in group '$webAppResourceGroup'."
 }
 
@@ -357,7 +361,8 @@ foreach ($version in $versions) {
 
         Copy-Item ".\swagger.json" $swaggerFile
         Write-Host "File '$swaggerFile' was generated."
-    } else {
+    }
+    else {
         Write-Host "Using swagger file $($swaggerFile)."
     }
 
