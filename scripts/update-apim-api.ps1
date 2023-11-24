@@ -79,15 +79,20 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-function CheckDotnetTool() {
-    # This ensures that the dotnet swashbuckle CLI is installed on the computer.
-    if (!(Test-Path ~\.dotnet\tools\swagger.exe)) {
-        Write-Host "Swashbuckle global tool not found. Installing..." -NoNewline
-        dotnet tool install -g Swashbuckle.AspNetCore.Cli
+function Install-DotnetTool() {
+    <#
+        .SYNOPSIS
+        Ensures that the dotnet Swashbuckle CLI is installed locally in this folder.
+    #>
+    $configPath = "$PWD/.config/dotnet-tools.json"
+    if (!(Test-Path $configPath)) {
+        Write-Host "Creating dotnet tool manifest..." -NoNewline
+        dotnet new tool-manifest
         Write-Host "Done"
-    } else {
-        Write-Host "Swashbuckle global tool found."
     }
+    Write-Host "Ensuring Swashbuckle CLI..." -NoNewline
+    dotnet tool install Swashbuckle.AspNetCore.Cli | Out-Null
+    Write-Host "Done"
 }
 
 function GenerateSwagger() {
@@ -113,13 +118,20 @@ function GenerateSwagger() {
     $content = $origContent.Replace($Matches[1], $match)
     $content | Out-File $projFile
 
-    Write-Host "Building project..." -NoNewline
+    Write-Host "Building project with  dotnet build -c Release -o build $PWD ..." -NoNewline
     dotnet build -c Release -o build $PWD | Out-Null
     Write-Host "Done"
 
-    Write-Host "Generating swagger..." -NoNewline
-    swagger tofile --output swagger.json "./build/$assemblyName.dll" $targetApiVersion | Out-Null
+    Write-Host "Generating swagger with dotnet swagger tofile --output swagger.json './build/$assemblyName.dll' $targetApiVersion..." -NoNewline
+    dotnet swagger tofile --output swagger.json "./build/$assemblyName.dll" $targetApiVersion | Out-Null
     Write-Host "Done"
+
+    Write-Host "Repacing stage name..." -NoNewline
+    $content = Get-Content -Raw swagger.json | ConvertFrom-Json
+    $content.info.title = $content.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
+    $content | ConvertTo-Json -Depth 10 | Out-File swagger.json
+    Write-Host "Done"
+
     Move-Item $tmpFile $projFile -Force
     Write-Host "Swagger document created"
 }
@@ -177,6 +189,7 @@ $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 $TargetStage = $TargetStage.toLowerInvariant()
 $performUpdate = $false
 $fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
+$env:DOTNET_ENVIRONMENT = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
@@ -208,7 +221,7 @@ if ($UseExistingSwaggerFiles.IsPresent) {
 }
 
 if (!$UseExistingSwaggerFiles.IsPresent) {
-    CheckDotnetTool
+    Install-DotnetTool
 }
 
 Write-Host "Stage is set to '$TargetStage'."
