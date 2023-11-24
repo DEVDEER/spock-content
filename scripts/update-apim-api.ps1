@@ -95,64 +95,124 @@ function Install-DotnetTool() {
     Write-Host "Done"
 }
 
-function GenerateSwagger() {
+function Get-AssemblyFileName() {
+    <#
+        .SYNOPSIS
+        Retrieves the file name of a *.csproj in the PWD if there is exactly 1.
+    #>
+    $result = Get-ChildItem -File -Filter *.csproj $PWD
+    if (($result | Measure-Object).Count -ne 1) {
+        throw "None or more than 1 project file(s) found."
+    }
+    return $result
+}
+
+function Get-AssemblyName() {
     param (
-        $ApiVersion,
-        $AssemblyName
+        [string]
+        $Filename
     )
+    <#
+        .SYNOPSIS
+        Retrieves the name of the assembly in the current directory either by using the
+        <AssemblyName/> from the csproj or by falling back to the file name of the csproj.
+        .PARAMETER Filename
+        Specifies the name of a csproj file in the PWD.
+    #>
+    $file = [System.IO.FileInfo]::new($Filename)
+    $assemblyName = $file.Name
+    [xml]$content = Get-Content -Raw $Filename
+    $csAssemblyName = $content.Project.PropertyGroup[0].AssemblyName
+    if ($csAssemblyName.Length -gt 0) {
+        $assemblyName = $content.Project.PropertyGroup[0].AssemblyName
+    }
+    return $assemblyName.Trim()
+}
+
+function Test-ProjectSettings() {
+    param (
+        [string]
+        $Filename
+    )
+    <#
+        .SYNOPSIS
+        Ensures that <DocumentationFile /> and/or <GenerateDocumentationFile /> are present in the csproj.
+        .PARAMETER Filename
+        Specifies the name of a csproj file in the PWD.
+        .OUTPUTS
+        0 if no element was found, 1 if <DocumentationFile /> was found and 2 if ONLY <GenerateDocumentationFile /> was found.
+    #>
+    [xml]$content = Get-Content -Raw $Filename
+    $propGroup = $content.Project.PropertyGroup
+    if ($null -ne $propGroup.DocumentationFile) {
+        # <DocumentationFile /> is present and set to true
+        return 1
+    }
+    if ($null -ne $propGroup.GenerateDocumentationFile -and $propGroup.GenerateDocumentationFile -eq $true) {
+        # <GenerateDocumentationFile /> is present and set to true
+        return 2
+    }
+    return 0
+}
+
+function Build-Swagger() {
+    param (
+        [string]
+        $Filename,
+        [string]
+        $AssemblyName,
+        [string]
+        $ApiVersion,
+        [bool]
+        $ModifyProjectFile,
+        [string]
+        $Output = 'swagger.json'
+    )
+    <#
+        .SYNOPSIS
+        Generates a JSON Swagger file at the desired output location.
+        .PARAMETER Filename
+        Specifies the name of a csproj file in the PWD.
+        .PARAMETER AssemblyName
+        The name of the .NET assembly.
+        .PARAMETER ApiVersion
+        The version key of Swashbuckle to export to the file in this run (e.g. "v1")
+        .PARAMETER ModifyProjectFile
+        A bool which defines if the csproj needs to be adjusted before export (replacing <DocumentationFile/> tag value).
+        .PARAMETER Output
+        Optional output file path to use (defaults to 'bin/swagger.json').
+    #>
     # This ensures that "dotnet-swagger.xml" is placed as the documentation file in the csproj and
     # then executes the swagger dotnet cli (https://github.com/domaindrivendev/Swashbuckle.AspNetCore#swashbuckleaspnetcorecli).
     # The replacement is needed because the tooling will change the executable assembly to itself and then
     # it fails if the name is not replace beforehand.
     Write-Host "Generating swagger document for version '$ApiVersion'..."
-    $projFiles = Get-ChildItem -File *.csproj
-    $projFile = $projFiles[0]
-    $tmpFile = "$projFile.tmp"
-    Copy-Item $projFile $tmpFile
-    $origContent = Get-Content -Raw $projFile
-    $origContent -match '<DocumentationFile>(.*).xml' | Out-Null
-    $match = $Matches[1]
-    $parts = $match.Split("\")
-    $file = $parts[-1]
-    $match = $match.Replace($file, "dotnet-swagger")
-    $content = $origContent.Replace($Matches[1], $match)
-    $content | Out-File $projFile
+    if ($ModifyProjectFile -eq $true) {
+        $tmpFile = ".tmp"
+        Copy-Item $Filename $tmpFile
+        [xml]$content = Get-Content -Raw $Filename
+        $content.Project.PropertyGroup[0].DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
+        $content.Save($Filename)
+    }
 
-    Write-Host "Building project with ..." -NoNewline
-    dotnet build -c Release -o build $PWD | Out-Null
+    Write-Host "Building project..." -NoNewline
+    dotnet build -c Release -o bin/swagger $PWD | Out-Null
     Write-Host "Done"
 
-    Write-Host "Generating swagger with..." -NoNewline
-    dotnet swagger tofile --output swagger.json "./build/$assemblyName.dll" $targetApiVersion | Out-Null
+    Write-Host "Generating swagger..." -NoNewline
+    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
     Write-Host "Done"
 
-    Write-Host "Repacing stage name..." -NoNewline
-    $content = Get-Content -Raw swagger.json | ConvertFrom-Json
-    $content.info.title = $content.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
-    $content | ConvertTo-Json -Depth 10 | Out-File swagger.json
+    Write-Host "Replacing stage name..." -NoNewline
+    $json = Get-Content -Raw $Output | ConvertFrom-Json
+    $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
+    $json | ConvertTo-Json -Depth 20 | Out-File $Output
     Write-Host "Done"
 
-    Move-Item $tmpFile $projFile -Force
-    Write-Host "Swagger document created"
-}
-
-function SwapSwaggerMetadata() {
-    param (
-        $Stage,
-        $FullStageName,
-        $ProjectName,
-        $ApiName,
-        $ApiVersion
-    )
-    Write-Host "Replacing Swagger information for target stage '$Stage'... " -NoNewline
-    $content = Get-Content -Raw swagger.json
-    $targetSwaggerJson = $content | ConvertFrom-Json -Depth 100
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($Stage, $FullStageName)
-    $targetSwaggerJson.info.title = $targetSwaggerJson.info.title.Replace($ProjectName, $ApiName)
-    $content = $targetSwaggerJson | ConvertTo-Json -Depth 100
-    $content = $content.Replace("api/$ApiVersion/", "")
-    Set-Content swagger.json $content
-    Write-Host "Done"
+    if ($ModifyProjectFile -eq $true) {
+        Move-Item $tmpFile $Filename -Force
+    }
+    Write-Host "Swagger document created at [$Output]"
 }
 
 function TransformJson() {
@@ -280,9 +340,16 @@ foreach ($version in $versions) {
         }
 
         # generate swagger json document
-        GenerateSwagger -ApiVersion $TargetApiVersion -AssemblyName $AssemblyName
-        # do replacements
-        SwapSwaggerMetadata -Stage $TargetStage -FullStageName $fullStageName -ProjectName $ProjectName -ApiName $ApiName -ApiVersion $targetApiVersion
+        $fileName = Get-AssemblyFileName
+        $assemblyName = Get-AssemblyName -FileName $fileName
+        Write-Host "Resolved assembly name is [$assemblyName]."
+        $docType = Test-ProjectSettings -FileName $fileName
+        if ($docType -eq 0) {
+            throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
+        }
+        Write-Host "Project information is set up to generate XML documentation files."
+        Build-Swagger -AssemblyName $assemblyName -ApiVersion $TargetApiVersion -FileName $fileName -ModifyProjectFile ($docType -eq 1)
+
         # transform the structure of json file
         TransformJson
 
