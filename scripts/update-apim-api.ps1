@@ -118,11 +118,11 @@ function GenerateSwagger() {
     $content = $origContent.Replace($Matches[1], $match)
     $content | Out-File $projFile
 
-    Write-Host "Building project with  dotnet build -c Release -o build $PWD ..." -NoNewline
+    Write-Host "Building project with ..." -NoNewline
     dotnet build -c Release -o build $PWD | Out-Null
     Write-Host "Done"
 
-    Write-Host "Generating swagger with dotnet swagger tofile --output swagger.json './build/$assemblyName.dll' $targetApiVersion..." -NoNewline
+    Write-Host "Generating swagger with..." -NoNewline
     dotnet swagger tofile --output swagger.json "./build/$assemblyName.dll" $targetApiVersion | Out-Null
     Write-Host "Done"
 
