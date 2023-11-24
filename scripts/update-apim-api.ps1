@@ -143,7 +143,7 @@ function Test-ProjectSettings() {
         0 if no element was found, 1 if <DocumentationFile /> was found and 2 if ONLY <GenerateDocumentationFile /> was found.
     #>
     [xml]$content = Get-Content -Raw $Filename
-    $propGroup = $content.Project.PropertyGroup
+    $propGroup = $content.Project.PropertyGroup[0]
     if ($null -ne $propGroup.DocumentationFile) {
         # <DocumentationFile /> is present and set to true
         return 1
@@ -249,7 +249,6 @@ $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 $TargetStage = $TargetStage.toLowerInvariant()
 $performUpdate = $false
 $fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
-$env:DOTNET_ENVIRONMENT = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
@@ -259,6 +258,9 @@ $webAppFullRoot = "https://$webAppName.azurewebsites.net"
 $webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
 $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
+
+# setting the DOTNET_ENVIRONMENT variable to a valid .NET stage so that later steps can act as if they are running on that stage
+$env:DOTNET_ENVIRONMENT = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
 
 $swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 if ($UseExistingSwaggerFiles.IsPresent) {
