@@ -305,6 +305,7 @@ foreach ($version in $versions) {
     $currentRevision = [int]$latestRevision.ApiRevision
     $currentVersionSetId = $api.ApiVersionSetId.Split("/")[-1]
     $revision = $currentRevision + 1
+    $swaggerSpecFile = 'swagger.online.json'
     Write-Host "Done"
 
     Write-Host "Retrieving current API spec for revision '$currentRevision' in version set '$currentVersionSetId'..." -NoNewline
@@ -312,7 +313,7 @@ foreach ($version in $versions) {
         -Context $ctx `
         -ApiId $apiId `
         -ApiRevision $currentRevision `
-        -SpecificationFormat "OpenApiJson" | Out-File swagger.online.json | Out-Null
+        -SpecificationFormat "OpenApiJson" | Out-File $swaggerSpecFile | Out-Null
     Write-Host "Done"
 
     Write-Host "Detecting API changes..." -NoNewline
@@ -339,6 +340,11 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
+    Write-Host "---------------------------------------------------------------"
+    Write-Host "Showing $swaggerSpecFile`n"
+    Get-Content -Raw $swaggerSpecFile
+    Write-Host "`n---------------------------------------------------------------"
+
     Write-Host "Importing API for '$revision' into version set '$currentVersionSetId'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
@@ -346,7 +352,7 @@ foreach ($version in $versions) {
         -ApiVersionSetId $currentVersionSetId `
         -ApiRevision $revision `
         -SpecificationFormat "OpenApi" `
-        -SpecificationPath swagger.online.json `
+        -SpecificationPath $swaggerSpecFile `
         -Path $api.Path | Out-Null
     Write-Host "Done"
 
