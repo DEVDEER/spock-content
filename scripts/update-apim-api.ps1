@@ -427,11 +427,6 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
-    Write-Host "---------------------------------------------------------------"
-    Write-Host "Showing $swaggerSpecFile`n"
-    Get-Content -Raw $swaggerSpecFile
-    Write-Host "`n---------------------------------------------------------------"
-
     Write-Host "Importing API for '$revision' into version set '$currentVersionSetId'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
