@@ -344,7 +344,6 @@ foreach ($version in $versions) {
         if (Test-Path -Path $resultFile) {
             Remove-Item $resultFile
         }
-
         # generate swagger json document
         $fileName = Get-AssemblyFileName
         $assemblyName = Get-AssemblyName -FileName $fileName
@@ -405,6 +404,7 @@ foreach ($version in $versions) {
 
     Write-Host "Detecting API changes..." -NoNewline
     #TODO Implement version change step
+    Move-Item $swaggerFile $swaggerSpecFile -Force
     $performUpdate = $true
     Write-Host "Done"
 
@@ -427,7 +427,7 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
-    Write-Host "Importing API for '$revision' into version set '$currentVersionSetId'... " -NoNewline
+    Write-Host "Importing API for into new revision '$revision' version set '$currentVersionSetId' from file '$swaggerSpecFile'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
         -ApiId $apiId `
@@ -466,4 +466,3 @@ if (!$SkipResultFile.IsPresent) {
 }
 
 Write-Host "🆗"
-
