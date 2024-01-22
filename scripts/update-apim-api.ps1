@@ -168,10 +168,12 @@ function Set-SwaggerSettings() {
         Write-Host "Ensuring swagger-enablement in '$file'..." -NoNewline
         $json = Get-Content -Raw $file | ConvertFrom-Json
         if ($json.Swagger.Enable) {
+            # set existing property to true
             $json.Swagger.Enable = $true
         }
         else {
-            $json.Swagger.Add("Enable", $true)
+            # add a new property with value true just to be sure
+            $json.Swagger | Add-Member -Name Enable -Value $true -MemberType NoteProperty
         }
         $json | ConvertTo-Json -Depth 20 | Out-File $file
         Write-Host "Done"
