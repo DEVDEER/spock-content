@@ -167,7 +167,8 @@ function Set-SwaggerSettings() {
     foreach ($file in $settingsFiles) {
         Write-Host "Ensuring swagger-enablement in '$file'..." -NoNewline
         $json = Get-Content -Raw $file | ConvertFrom-Json
-        if ($json.Swagger.Enable) {
+        $enableExists = $json.Swagger | Get-Member -Name Enable
+        if ($enableExists) {
             # set existing property to true
             $json.Swagger.Enable = $true
         }
