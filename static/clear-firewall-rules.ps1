@@ -1,4 +1,5 @@
 $locks = Remove-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME%
+$existintRules = Get-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME%
 foreach ($rule in $existintRules) {
     $ruleName = $rule.FirewallRuleName
     if ($ruleName -ne "AllowAllWindowsAzureIps") {
