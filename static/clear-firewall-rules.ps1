@@ -4,20 +4,20 @@ foreach ($rule in $existintRules) {
     if ($ruleName -ne "AllowAllWindowsAzureIps") {
         Remove-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME% -FirewallRuleName $ruleName | Out-Null
         if (!$?) {
-            Write-HostError "Failed to remove firewall rules: $_"
+            Write-Host "Failed to remove firewall rules: $_" -ForegroundColor Red
         }
         Write-Host "Removed rule $ruleName" -ForegroundColor Cyan
     }
     else {
-        Write-HostDebug "Ignoring default rule $ruleName"
+        Write-Host "Ignoring default rule $ruleName" -VerboseOnly
     }
 }
 Write-HostSuccess "Removed all firewall rules from server '%SQL_NAME%'"
 if ($locks) {
-    Write-HostDebug "Re-adding no-delete-rules for resource group" -NoNewline
+    Write-Host "Re-adding no-delete-rules for resource group" -NoNewline
     New-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME% -Locks $locks
-    Write-HostSuccess "Done"
+    Write-Host "Done"
 }
 else {
-    Write-HostDebug "Skipping re-adding of locks because no locks where found prior to the operation."
+    Write-Host "Skipping re-adding of locks because no locks where found prior to the operation." -VerboseOnly
 }
