@@ -1,4 +1,4 @@
-$locks = Remove-NoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME%
+$locks = Remove-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME%
 foreach ($rule in $existintRules) {
     $ruleName = $rule.FirewallRuleName
     if ($ruleName -ne "AllowAllWindowsAzureIps") {
@@ -15,7 +15,7 @@ foreach ($rule in $existintRules) {
 Write-HostSuccess "Removed all firewall rules from server '%SQL_NAME%'"
 if ($locks) {
     Write-HostDebug "Re-adding no-delete-rules for resource group" -NoNewline
-    New-NoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME% -Locks $locks
+    New-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME% -Locks $locks
     Write-HostSuccess "Done"
 }
 else {
