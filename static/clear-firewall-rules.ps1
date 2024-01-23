@@ -20,5 +20,5 @@ if ($locks) {
     Write-Host "Done"
 }
 else {
-    Write-Host "Skipping re-adding of locks because no locks where found prior to the operation." -VerboseOnly
+    Write-Host "Skipping re-adding of locks because no locks where found prior to the operation." -Verbose
 }
