@@ -156,6 +156,31 @@ function Test-ProjectSettings() {
     return 0
 }
 
+function Set-SwaggerSettings() {
+    <#
+        .SYNOPSIS
+        Searches for all appsettings*.json files in the $PWD and sets the option Swagger.Enable to true for all of them.
+    #>
+    Write-Host "Collecting appsettings files..." -NoNewline
+    $settingsFiles = Get-ChildItem appsettings*.json
+    Write-Host "Done."
+    foreach ($file in $settingsFiles) {
+        Write-Host "Ensuring swagger-enablement in '$file'..." -NoNewline
+        $json = Get-Content -Raw $file | ConvertFrom-Json
+        $enableExists = $json.Swagger | Get-Member -Name Enable
+        if ($enableExists) {
+            # set existing property to true
+            $json.Swagger.Enable = $true
+        }
+        else {
+            # add a new property with value true just to be sure
+            $json.Swagger | Add-Member -Name Enable -Value $true -MemberType NoteProperty
+        }
+        $json | ConvertTo-Json -Depth 20 | Out-File $file
+        Write-Host "Done"
+    }
+}
+
 function Build-Swagger() {
     param (
         [string]
@@ -353,6 +378,7 @@ foreach ($version in $versions) {
             throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
         }
         Write-Host "Project information is set up to generate XML documentation files."
+        Set-SwaggerSettings
         Build-Swagger -AssemblyName $assemblyName -ApiVersion $TargetApiVersion -FileName $fileName -ModifyProjectFile ($docType -eq 1)
 
         # transform the structure of json file
