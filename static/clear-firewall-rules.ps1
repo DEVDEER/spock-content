@@ -12,7 +12,7 @@ foreach ($rule in $existintRules) {
         Write-Host "Ignoring default rule $ruleName" -VerboseOnly
     }
 }
-Write-HostSuccess "Removed all firewall rules from server '%SQL_NAME%'"
+Write-Host "Removed all firewall rules from server '%SQL_NAME%'" -ForegroundColor Green
 if ($locks) {
     Write-Host "Re-adding no-delete-rules for resource group" -NoNewline
     New-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME% -Locks $locks
