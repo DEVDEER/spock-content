@@ -22,6 +22,7 @@ param (
     [string]
     $StatusDescription = ''
 )
+$devOpsScopeGuid = '499b84ac-1321-427f-aa17-267ca6975798'
 # Install and import the Az module
 Install-Module Az.Accounts -Force -AllowClobber -Scope CurrentUser
 Import-Module Az.Accounts -Global -Force
