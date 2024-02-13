@@ -23,8 +23,8 @@ param (
     $StatusDescription = ''
 )
 # Install and import the Az module
-Install-Module Az -Force -AllowClobber -Scope CurrentUser
-Import-Module Az -Global -Force
+Install-Module Az.Accounts -Force -AllowClobber -Scope CurrentUser
+Import-Module Az.Accounts -Global -Force
 $baseUrl = "$($CollectionUri)$($ProjectName)/_apis"
 # Authenticate with Azure DevOps
 $secureStringPwd = $PrincipalSecret | ConvertTo-SecureString -AsPlainText -Force
