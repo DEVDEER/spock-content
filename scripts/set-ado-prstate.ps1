@@ -11,7 +11,11 @@ param (
     [string]
     $PullRequestId,
     [string]
-    $Token,
+    $PrincipalId,
+    [string]
+    $PrincipalSecret,
+    [string]
+    $TenantId,
     [string]
     [ValidateSet('Succeeded', 'Failed', 'Waiting')]
     $StatusState,
@@ -20,10 +24,15 @@ param (
 )
 $baseUrl = "$($CollectionUri)$($ProjectName)/_apis"
 # Authenticate with Azure DevOps
-$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$Token"))
-$headers = @{ Authorization = "Basic $base64AuthInfo" }
+$secureStringPwd = $PrincipalSecret | ConvertTo-SecureString -AsPlainText -Force
+$pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $PrincipalId, $secureStringPwd
+Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $TenantId
+# Get the access token
+$Token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
+$headers = @{ Authorization = "Bearer $Token" }
+# Set the suffix
 $suffix = "?api-version=7.0"
-# get the repo
+# Get the repo
 $repoUrl = "$baseUrl/git/repositories$suffix"
 $repos = Invoke-RestMethod -Uri $repoUrl -Headers $headers -Method Get
 $repositoryId = $repos.value.id
