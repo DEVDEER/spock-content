@@ -22,6 +22,8 @@ param (
     [string]
     $StatusDescription = ''
 )
+# Import the Az module
+Import-Module Az -Scope CurrentUser -Force
 $baseUrl = "$($CollectionUri)$($ProjectName)/_apis"
 # Authenticate with Azure DevOps
 $secureStringPwd = $PrincipalSecret | ConvertTo-SecureString -AsPlainText -Force
