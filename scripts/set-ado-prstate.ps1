@@ -22,7 +22,6 @@ param (
     [string]
     $StatusDescription = ''
 )
-$devOpsScopeGuid = '499b84ac-1321-427f-aa17-267ca6975798'
 # Install and import the Az module
 Install-Module Az.Accounts -Force -AllowClobber -Scope CurrentUser
 Import-Module Az.Accounts -Global -Force
@@ -32,7 +31,7 @@ $secureStringPwd = $PrincipalSecret | ConvertTo-SecureString -AsPlainText -Force
 $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $PrincipalId, $secureStringPwd
 Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $TenantId
 # Get the access token
-$Token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
+$Token = (Get-AzAccessToken -ResourceUrl "499b84ac-1321-427f-aa17-267ca6975798").Token
 $headers = @{ Authorization = "Bearer $Token" }
 # Set the suffix
 $suffix = "?api-version=7.0"
