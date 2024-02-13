@@ -104,100 +104,106 @@ To make your fully compliant in working with pull requests and their state, you 
 
 ### preparation.yml
 ```yaml
-    - pwsh: |                            
-        $hasPR = Test-Path pr.txt
-        Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-        Write-Host "hasPR before if is $hasPR"
-        if ($hasPR) {
-          $pr = Get-Content -Raw pr.txt
-          $pr = $pr.replace("`n","").replace("`r","")
-          Write-Host "##vso[task.setvariable variable=pr;]$pr"
-          Write-Host "PR number is $pr"
-          # PR Url
-          $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
-          #Authenticate to ADO
-          $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-          $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-          $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-          Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
-          # Get the access token
-          $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
-          $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-          $headers.Add('Authorization',('Bearer {0}' -f $token))
-          $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
-          $status = $response.status
-          if ($status -ne "active") {
-            $hasPR = $false
-            Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-            Write-Host "hasPR is $hasPR"
+    - task: AzurePowerShell@5
+      inputs:
+        Inline: |                            
+          $hasPR = Test-Path pr.txt
+          Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+          Write-Host "hasPR before if is $hasPR"
+          if ($hasPR) {
+            $pr = Get-Content -Raw pr.txt
+            $pr = $pr.replace("`n","").replace("`r","")
+            Write-Host "##vso[task.setvariable variable=pr;]$pr"
+            Write-Host "PR number is $pr"
+            # PR Url
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            #Authenticate to ADO
+            $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
+            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            # Get the access token
+            $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add('Authorization',('Bearer {0}' -f $token))
+            $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
+            $status = $response.status
+            if ($status -ne "active") {
+              $hasPR = $false
+              Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+              Write-Host "hasPR is $hasPR"
+            }
           }
-        }
-      displayName: 'Checking for PR trigger'
-      workingDirectory: $(Pipeline.Workspace)/ci/drop
+        displayName: 'Checking for PR trigger'
+        workingDirectory: $(Pipeline.Workspace)/ci/drop
 
 ```
 
 ### deployment.yml
 ```yaml
-    - pwsh: |                            
-        $hasPR = Test-Path pr.txt
-        Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-        if ($hasPR) {
-          $pr = Get-Content -Raw pr.txt
-          $pr = $pr.replace("`n","").replace("`r","")
-          Write-Host "##vso[task.setvariable variable=pr;]$pr"
-          Write-Host "PR number is $pr"
-          $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
-          #Authenticate to ADO
-          $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-          $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-          $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-          Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
-          # Get the access token
-          $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
-          $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-          $headers.Add('Authorization',('Bearer {0}' -f $token))
-          $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
-          $status = $response.status
-          if ($status -ne "active") {
-            $hasPR = $false
-            Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-            Write-Host "hasPR is $hasPR"
+    - task: AzurePowerShell@5
+      inputs:
+        Inline: |                            
+          $hasPR = Test-Path pr.txt
+          Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+          if ($hasPR) {
+            $pr = Get-Content -Raw pr.txt
+            $pr = $pr.replace("`n","").replace("`r","")
+            Write-Host "##vso[task.setvariable variable=pr;]$pr"
+            Write-Host "PR number is $pr"
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            #Authenticate to ADO
+            $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
+            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            # Get the access token
+            $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add('Authorization',('Bearer {0}' -f $token))
+            $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
+            $status = $response.status
+            if ($status -ne "active") {
+              $hasPR = $false
+              Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+              Write-Host "hasPR is $hasPR"
+            }
           }
-        }
-      displayName: 'Checking for PR trigger and reading PR'
-      workingDirectory: $(Pipeline.Workspace)/ci/drop
+        displayName: 'Checking for PR trigger and reading PR'
+        workingDirectory: $(Pipeline.Workspace)/ci/drop
 ```
 
 ### backent-stage.yml
 ```yaml
-    - pwsh: |
-        $hasPR = Test-Path pr.txt
-        Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-        if ($hasPR) {
-        $pr = Get-Content -Raw pr.txt
-        $pr = $pr.replace("`n","").replace("`r","")
-        Write-Host "##vso[task.setvariable variable=pr;]$pr"
-        Write-Host "PR number is $pr"
-        $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
-        #Authenticate to ADO
-        $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-        $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-        $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-        Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
-        # Get the access token
-        $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
-        $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-        $headers.Add('Authorization',('Bearer {0}' -f $token))
-        $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
-        $status = $response.status
-        if ($status -ne "active") {
-            $hasPR = $false
-            Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
-            Write-Host "hasPR is $hasPR"
-        }
-        }
-    displayName: 'Checking for PR trigger and reading PR'
-    workingDirectory: $(Pipeline.Workspace)/ci/drop
+    - task: AzurePowerShell@5
+      inputs:
+        Inline: |
+          $hasPR = Test-Path pr.txt
+          Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+          if ($hasPR) {
+            $pr = Get-Content -Raw pr.txt
+            $pr = $pr.replace("`n","").replace("`r","")
+            Write-Host "##vso[task.setvariable variable=pr;]$pr"
+            Write-Host "PR number is $pr"
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            #Authenticate to ADO
+            $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
+            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            # Get the access token
+            $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add('Authorization',('Bearer {0}' -f $token))
+            $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -ContentType application/json
+            $status = $response.status
+            if ($status -ne "active") {
+                $hasPR = $false
+                Write-Host "##vso[task.setvariable variable=hasPR;]$hasPR"
+                Write-Host "hasPR is $hasPR"
+            }
+          }
+        displayName: 'Checking for PR trigger and reading PR'
+        workingDirectory: $(Pipeline.Workspace)/ci/drop
 ```
 
