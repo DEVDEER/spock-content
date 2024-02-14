@@ -116,7 +116,7 @@ To make your fully compliant in working with pull requests and their state, you 
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
             # PR Url
-            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
             $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
@@ -154,7 +154,7 @@ To make your fully compliant in working with pull requests and their state, you 
             $pr = $pr.replace("`n","").replace("`r","")
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
-            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
             $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
@@ -191,7 +191,7 @@ To make your fully compliant in working with pull requests and their state, you 
             $pr = $pr.replace("`n","").replace("`r","")
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
-            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
             $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
