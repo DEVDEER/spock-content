@@ -116,12 +116,12 @@ To make your fully compliant in working with pull requests and their state, you 
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
             # PR Url
-            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$(PrincipalId)", $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant "$(TenantId)"
             # Get the access token
             $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -134,6 +134,9 @@ To make your fully compliant in working with pull requests and their state, you 
               Write-Host "hasPR is $hasPR"
             }
           }
+        azureSubscription: ${{ parameters.ServiceConnectionName }}
+        ScriptType: 'InlineScript'
+        preferredAzurePowerShellVersion: '3.1.0'
         displayName: 'Checking for PR trigger'
         workingDirectory: $(Pipeline.Workspace)/ci/drop
 
@@ -151,12 +154,12 @@ To make your fully compliant in working with pull requests and their state, you 
             $pr = $pr.replace("`n","").replace("`r","")
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
-            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$(PrincipalId)", $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant "$(TenantId)"
             # Get the access token
             $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -169,6 +172,9 @@ To make your fully compliant in working with pull requests and their state, you 
               Write-Host "hasPR is $hasPR"
             }
           }
+        azureSubscription: ${{ parameters.ServiceConnectionName }}
+        ScriptType: 'InlineScript'
+        preferredAzurePowerShellVersion: '3.1.0'
         displayName: 'Checking for PR trigger and reading PR'
         workingDirectory: $(Pipeline.Workspace)/ci/drop
 ```
@@ -185,12 +191,12 @@ To make your fully compliant in working with pull requests and their state, you 
             $pr = $pr.replace("`n","").replace("`r","")
             Write-Host "##vso[task.setvariable variable=pr;]$pr"
             Write-Host "PR number is $pr"
-            $url = "https://dev.azure.com/COMPANY_NAME/PROJECT_NAME/_apis/git/repositories/PROJECT_NAME/pullRequests/" + $pr + "?api-version=7.0"
+            $url = "https://dev.azure.com/grzroche/Jever/_apis/git/repositories/Jever/pullRequests/" + $pr + "?api-version=7.0"
             #Authenticate to ADO
             $devOpsScopeGuid = "499b84ac-1321-427f-aa17-267ca6975798"
-            $secureStringPwd = $(PrincipalSecret) | ConvertTo-SecureString -AsPlainText -Force
-            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(PrincipalId), $secureStringPwd
-            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $(TenantId)
+            $secureStringPwd = "$(PrincipalSecret)" | ConvertTo-SecureString -AsPlainText -Force
+            $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$(PrincipalId)", $secureStringPwd
+            Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant "$(TenantId)"
             # Get the access token
             $token = (Get-AzAccessToken -ResourceUrl $devOpsScopeGuid).Token
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -203,6 +209,9 @@ To make your fully compliant in working with pull requests and their state, you 
                 Write-Host "hasPR is $hasPR"
             }
           }
+        azureSubscription: ${{ parameters.ServiceConnectionName }}
+        ScriptType: 'InlineScript'
+        preferredAzurePowerShellVersion: '3.1.0'
         displayName: 'Checking for PR trigger and reading PR'
         workingDirectory: $(Pipeline.Workspace)/ci/drop
 ```
