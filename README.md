@@ -73,15 +73,15 @@ At the end:
 ### backend-stage.yml template
 ```yaml
 - task: PowerShell@2
-displayName: 'Finish CD state'
-timeoutInMinutes: 1
-inputs:
-    targetType: filePath
-    filePath: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts/set-ado-prstate.ps1'
-    arguments: '-TenantId $(TenantId) -CollectionUri $(System.CollectionUri) -ProjectName $(System.TeamProject) -PrincipalId $(PrincipalId) -PrincipalSecret $(PrincipalSecret) -PullRequestId $(pr) -StatusState "Succeeded" -StatusDescription ""'
-    pwsh: true
-    workingDirectory: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts'
-condition: and(eq(variables['Agent.JobStatus'], 'Succeeded'), eq(variables['hasPR'], 'True'), eq('${{ parameters.StageShort }}', 'prod'))
+  displayName: 'Finish CD state'
+  timeoutInMinutes: 1
+  inputs:
+      targetType: filePath
+      filePath: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts/set-ado-prstate.ps1'
+      arguments: '-TenantId $(TenantId) -CollectionUri $(System.CollectionUri) -ProjectName $(System.TeamProject) -PrincipalId $(PrincipalId) -PrincipalSecret $(PrincipalSecret) -PullRequestId $(pr) -StatusState "Succeeded" -StatusDescription ""'
+      pwsh: true
+      workingDirectory: '$(Pipeline.Workspace)/ci/drop/pipeline-scripts'
+  condition: and(eq(variables['Agent.JobStatus'], 'Succeeded'), eq(variables['hasPR'], 'True'), eq('${{ parameters.StageShort }}', 'prod'))
 ```
 
 ### deployment.yml template
