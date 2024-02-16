@@ -29,7 +29,7 @@ $baseUrl = "$($CollectionUri)$($ProjectName)/_apis"
 # Authenticate with Azure DevOps
 $secureStringPwd = $PrincipalSecret | ConvertTo-SecureString -AsPlainText -Force
 $pscredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $PrincipalId, $secureStringPwd
-Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $TenantId
+Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $TenantId -ErrorAction SilentlyContinue
 # Get the access token
 $Token = (Get-AzAccessToken -ResourceUrl "499b84ac-1321-427f-aa17-267ca6975798").Token
 $headers = @{ Authorization = "Bearer $Token" }
