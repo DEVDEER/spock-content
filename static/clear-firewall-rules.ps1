@@ -1,4 +1,4 @@
-$locks = Remove-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME%
+$locks = Remove-CafLocks -ResourceGroupName %RG_NAME%
 $existintRules = Get-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME%
 $count = 0
 foreach ($rule in $existintRules) {
@@ -23,7 +23,7 @@ if ($count -gt 0) {
 }
 if ($locks) {
     Write-Host "Re-adding no-delete-rules for resource group" -NoNewline
-    New-CafNoDeleteLocksForResourceGroup -ResourceGroupName %RG_NAME% -Locks $locks
+    Restore-CafLocks -ResourceGroupName %RG_NAME% -Locks $locks
     Write-Host "Done"
 }
 else {
