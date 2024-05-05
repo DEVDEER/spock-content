@@ -1,4 +1,5 @@
 $locks = Remove-CafLocks -ResourceGroupName %RG_NAME%
+Write-Host "NoDelete locks removed from resource group."
 $existintRules = Get-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME%
 $count = 0
 foreach ($rule in $existintRules) {
