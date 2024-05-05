@@ -22,7 +22,7 @@ if ($count -gt 0) {
     Write-Host "No removable rules where found on server '%SQL_NAME%'." -ForegroundColor Yellow
 }
 if ($locks) {
-    Write-Host "Re-adding no-delete-rules for resource group" -NoNewline
+    Write-Host "Re-adding no-delete-rules for resource group..." -NoNewline
     Restore-CafLocks -ResourceGroupName %RG_NAME% -Locks $locks
     Write-Host "Done"
 }
