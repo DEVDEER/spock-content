@@ -51,6 +51,9 @@ param (
     $ApiName,
     [Parameter(Mandatory = $false)]
     [string]
+    $SpecificHostUrl,
+    [Parameter(Mandatory = $false)]
+    [string]
     $AdditionalName,
     [Parameter(Mandatory = $false)]
     [string]
@@ -280,8 +283,16 @@ $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
 $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
-$webAppName = "api-$azureNamePart"
-$webAppFullRoot = "https://$webAppName.azurewebsites.net"
+if ($SpecificHostUrl.Length -eq 0) {
+    # this means that we are targetting an Azure App Service
+    $webAppName = "api-$azureNamePart"
+    $webAppFullRoot = "https://$webAppName.azurewebsites.net"
+}
+else {
+    # this means that we are targetting something like Azure Container App using
+    # a given host url
+    $webAppFullRoot = $SpecificHostUrl
+}
 $webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
 $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
