@@ -371,19 +371,19 @@ foreach ($version in $versions) {
             Remove-Item $resultFile
         }
         # generate swagger json document
-        $fileName = Get-ProjectFileName
+        $projectFileName = Get-ProjectFileName
         if ($AssemblyName.Length -eq 0) {
             # assembly name was not passed in as parameter -> read it from the project file
-            $AssemblyName = Get-AssemblyName -Filename $fileName
+            $AssemblyName = Get-AssemblyName -Filename $projectFileName
         }
         Write-Host "Resolved assembly name is [$AssemblyName]."
-        $docType = Test-ProjectSettings -FileName $fileName
+        $docType = Test-ProjectSettings -FileName $projectFileName
         if ($docType -eq 0) {
             throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
         }
         Write-Host "Project information is set up to generate XML documentation files."
         Set-SwaggerSettings
-        Build-Swagger -AssemblyName $AssemblyName -ApiVersion $TargetApiVersion -FileName $fileName -ModifyProjectFile ($docType -eq 1)
+        Build-Swagger -AssemblyName $AssemblyName -ApiVersion $TargetApiVersion -ProjectFileName $projectFileName -ModifyProjectFile ($docType -eq 1)
         # transform the structure of json file
         TransformJson
         Copy-Item ".\swagger.json" $swaggerFile
