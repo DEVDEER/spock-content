@@ -98,16 +98,17 @@ function Install-DotnetTool() {
     Write-Host "Done"
 }
 
-function Get-AssemblyFileName() {
+function Get-ProjectFileName() {
     <#
         .SYNOPSIS
         Retrieves the file name of a *.csproj in the PWD if there is exactly 1.
     #>
-    $result = Get-ChildItem -File -Filter *.csproj $PWD
-    if (($result | Measure-Object).Count -ne 1) {
-        throw "None or more than 1 project file(s) found."
+    $projectFiles = Get-ChildItem -File -Filter *.csproj $PWD
+    $projectFilesCount = ($projectFiles | Measure-Object).Count
+    if ($projectFilesCount -ne 1) {
+        throw "Found ${$projectFilesCount} project file(s), but can only handle 1."
     }
-    return $result
+    return $projectFiles
 }
 
 function Get-AssemblyName() {
@@ -187,7 +188,7 @@ function Set-SwaggerSettings() {
 function Build-Swagger() {
     param (
         [string]
-        $Filename,
+        $ProjectFilename,
         [string]
         $AssemblyName,
         [string]
@@ -200,7 +201,7 @@ function Build-Swagger() {
     <#
         .SYNOPSIS
         Generates a JSON Swagger file at the desired output location.
-        .PARAMETER Filename
+        .PARAMETER ProjectFilename
         Specifies the name of a csproj file in the PWD.
         .PARAMETER AssemblyName
         The name of the .NET assembly.
@@ -218,27 +219,23 @@ function Build-Swagger() {
     Write-Host "Generating swagger document for version '$ApiVersion'..."
     if ($ModifyProjectFile -eq $true) {
         $tmpFile = ".tmp"
-        Copy-Item $Filename $tmpFile
-        [xml]$content = Get-Content -Raw $Filename
+        Copy-Item $ProjectFilename $tmpFile
+        [xml]$content = Get-Content -Raw $ProjectFilename
         $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
-        $content.Save($Filename)
+        $content.Save($ProjectFilename)
     }
-
     Write-Host "Building project..." -NoNewline
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
     Write-Host "Done"
-
     Write-Host "Generating swagger..." -NoNewline
     dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
     Write-Host "Done"
-
     Write-Host "Replacing stage name..." -NoNewline
     $json = Get-Content -Raw $Output | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
     Write-Host "Done"
-
     if ($ModifyProjectFile -eq $true) {
         Move-Item $tmpFile $Filename -Force
     }
@@ -275,28 +272,27 @@ function TransformJson() {
     $copy | ConvertTo-Json -Depth 20 | Set-Content swagger.json
 }
 
+# arrange variables and switches
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
-$TargetStage = $TargetStage.toLowerInvariant()
+# switch to indicate whether to update API Management
 $performUpdate = $false
 $fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
-$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
-$azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
 if ($SpecificHostUrl.Length -eq 0) {
-    # this means that we are targetting an Azure App Service
+    # By default the API is running on an Azure App Service
+    $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
+    $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
     $webAppName = "api-$azureNamePart"
     $webAppFullRoot = "https://$webAppName.azurewebsites.net"
 }
 else {
-    # this means that we are targetting something like Azure Container App using
-    # a given host url
+    # The API is running on a different host like Azure Container Apps
     $webAppFullRoot = $SpecificHostUrl
 }
-$webAppResourceGroup = "rg-$ProjectName-$($TargetStage -eq 'prod' ? 'production' : $TargetStage)"
+$webAppResourceGroup = "rg-$ProjectName-$TargetStage"
 $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
-
 # setting the DOTNET_ENVIRONMENT variable to a valid .NET stage so that later steps can act as if they are running on that stage
 $env:DOTNET_ENVIRONMENT = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
 
@@ -312,16 +308,9 @@ if ($UseExistingSwaggerFiles.IsPresent) {
     foreach ($file in $files) {
         Write-Host "  $file"
     }
-
 }
 else {
-    # caller does not provide swagger json files
-    if ($AssemblyName.Length -eq 0) {
-        throw "You need to define AssemblyName if no UseExistingSwaggerFiles is no set!"
-    }
-}
-
-if (!$UseExistingSwaggerFiles.IsPresent) {
+    # swagger files need to be generated, prepare required tooling
     Install-DotnetTool
 }
 
@@ -333,7 +322,7 @@ else {
     Write-Host "Targeted Azure resource are '$apiMgmtName' in '$resourceGroup' and '$webAppFullRoot' in group '$webAppResourceGroup'."
 }
 
-Write-Host "Retrieving all Swagger versions from app settings file ... " -NoNewline
+Write-Host "Retrieving all Swagger versions from app settings file... "
 $settingsFile = "$PWD/appsettings.json"
 if (!(Test-Path $settingsFile)) {
     # We don't have an appsettings.json here. In CI this is normal because we should run inside of the project folder. This
@@ -341,18 +330,19 @@ if (!(Test-Path $settingsFile)) {
     $settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
 }
 Write-Host "Reading $settingsFile..."
-$content = Get-Content -Raw $settingsFile
-$json = $content | ConvertFrom-Json -Depth 10
+$settingsContent = Get-Content -Raw $settingsFile
+$json = $settingsContent | ConvertFrom-Json -Depth 10
 $versions = $json.Swagger.SupportedVersions
 $versionsAmount = ($versions | Measure-Object).Count
 Write-Host "Done. Found $versionsAmount versions."
 
 if ($versionsAmount -eq 0) {
-    Write-Host $content
+    Write-Host $settingsContent
     throw "No API versions found in $settingsFile."
 }
 
 if (!$DryRun.IsPresent) {
+    # prepare the Azure context for accessing API management
     $currentSubscription = (Get-AzContext).Subscription.Id
     if ($ApiManagementSubscriptionId.Length -gt 0 -and $currentSubscription -ne $ApiManagementSubscriptionId) {
         Write-Host "Setting Azure context to subscription $ApiManagementSubscriptionId..." -NoNewline
@@ -381,33 +371,33 @@ foreach ($version in $versions) {
             Remove-Item $resultFile
         }
         # generate swagger json document
-        $fileName = Get-AssemblyFileName
-        $assemblyName = Get-AssemblyName -FileName $fileName
-        Write-Host "Resolved assembly name is [$assemblyName]."
+        $fileName = Get-ProjectFileName
+        if ($AssemblyName.Length -eq 0) {
+            # assembly name was not passed in as parameter -> read it from the project file
+            $AssemblyName = Get-AssemblyName -Filename $fileName
+        }
+        Write-Host "Resolved assembly name is [$AssemblyName]."
         $docType = Test-ProjectSettings -FileName $fileName
         if ($docType -eq 0) {
             throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
         }
         Write-Host "Project information is set up to generate XML documentation files."
         Set-SwaggerSettings
-        Build-Swagger -AssemblyName $assemblyName -ApiVersion $TargetApiVersion -FileName $fileName -ModifyProjectFile ($docType -eq 1)
-
+        Build-Swagger -AssemblyName $AssemblyName -ApiVersion $TargetApiVersion -FileName $fileName -ModifyProjectFile ($docType -eq 1)
         # transform the structure of json file
         TransformJson
-
         Copy-Item ".\swagger.json" $swaggerFile
         Write-Host "File '$swaggerFile' was generated."
     }
     else {
-        Write-Host "Using swagger file $($swaggerFile)."
+        Write-Host "Using existing swagger file $($swaggerFile)."
     }
 
     if ($DryRun.IsPresent) {
         # thats it for this version -> don't actually do anything
-        Write-Host "Skipping because of dry run."
+        Write-Host "Skipping update operations on API Management because of dry run."
         continue
     }
-
     Write-Host "Retrieving information for API ID '$apiId' ... " -NoNewline
     try {
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
@@ -419,7 +409,6 @@ foreach ($version in $versions) {
         Write-Host "Retry with new API ID '$apiId'... " -NoNewline
         $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
     }
-
     if (!$api) {
         throw "Could not retrieve API from APIM context."
     }
