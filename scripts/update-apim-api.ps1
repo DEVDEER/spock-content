@@ -219,8 +219,8 @@ function Build-Swagger() {
     Write-Host "Generating swagger document for version '$ApiVersion'..."
     if ($ModifyProjectFile -eq $true) {
         $tmpFile = ".tmp"
-        Copy-Item $ProjectFilename $tmpFile
-        [xml]$content = Get-Content -Raw $ProjectFilename
+        Copy-Item -Path $ProjectFilename -Destination $tmpFile
+        [xml]$content = Get-Content -Raw -Path $ProjectFilename
         $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($ProjectFilename)
