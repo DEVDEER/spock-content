@@ -237,7 +237,7 @@ function Build-Swagger() {
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
     Write-Host "Done"
     if ($ModifyProjectFile -eq $true) {
-        Move-Item $tmpFile $Filename -Force
+        Move-Item $tmpFile $ProjectFilename -Force
     }
     Write-Host "Swagger document created at [$Output]"
 }
