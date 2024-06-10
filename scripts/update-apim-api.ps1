@@ -279,9 +279,9 @@ $performUpdate = $false
 $fullStageName = $TargetStage -eq 'test' ? 'test' : $TargetStage -eq 'prod' ? 'production' : 'integration'
 $resultFile = "result.txt"
 $technicalProjectName = $ProjectName.ToLowerInvariant()
+$prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
 if ($SpecificHostUrl.Length -eq 0) {
     # By default the API is running on an Azure App Service
-    $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
     $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
     $webAppName = "api-$azureNamePart"
     $webAppFullRoot = "https://$webAppName.azurewebsites.net"
@@ -405,9 +405,11 @@ foreach ($version in $versions) {
     catch {
         # we should try a different ID because some APIs do not have the version tag in it
         Write-Host "Error"
-        $apiId = $azureNamePart
-        Write-Host "Retry with new API ID '$apiId'... " -NoNewline
-        $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
+        if ($SpecificHostUrl.Length -eq 0) {
+            $apiId = $azureNamePart
+            Write-Host "Retry with new API ID '$apiId'... " -NoNewline
+            $api = Get-AzApiManagementApi -Context $ctx -ApiId $apiId
+        }
     }
     if (!$api) {
         throw "Could not retrieve API from APIM context."
