@@ -14,7 +14,7 @@ foreach ($rule in $existintRules) {
         Write-Host "Removed rule $ruleName" -ForegroundColor Cyan
     }
     else {
-        Write-Host "Ignoring default rule $ruleName" -Verbose
+        Write-Host "Ignoring default rule $ruleName"
     }
 }
 if ($count -gt 0) {
