@@ -24,7 +24,7 @@ if ($count -gt 0) {
 }
 if ($locks) {
     Write-Host "Re-adding no-delete-rules for resource group..." -NoNewline
-    Restore-CafLocks -ResourceGroupName %RG_NAME% -Locks $locks
+    Restore-CafLocks -Locks $locks
     Write-Host "Done"
 }
 else {
