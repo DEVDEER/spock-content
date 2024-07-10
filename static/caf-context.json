@@ -1,5 +1,8 @@
 {
-  "tenantId": "29647f11-9566-488e-98ae-ec6b2d569dca",
+  "tenantId": {
+    "type": "string",
+    "description": "The GUID of the tenant which is holding management resources."
+  },
   "managementSubscriptionId": {
     "type": "string",
     "description": "The GUID of the subscription which is holding management resources."
