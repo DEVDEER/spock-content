@@ -1,46 +1,52 @@
 {
-  "tenantId": {
-    "type": "string",
-    "description": "The GUID of the tenant which is holding management resources."
-  },
-  "managementSubscriptionId": {
-    "type": "string",
-    "description": "The GUID of the subscription which is holding management resources."
-  },
-  "companyShort": {
-    "type": "string",
-    "description": "The shortcut representing the company part in resource names."
-  },
-  "companyName": {
-    "type": "string",
-    "description": "The name of your company."
-  },
-  "isRoot": {
-    "type": "boolean",
-    "description": "Defines if this is the root .azcontext so the searcher will not search up the tree."
-  },
-  "forceContext": {
-    "type": "boolean",
-    "description": "Defines if the context will be set in any case to the tenant and subscription provided here."
-  },
-  "adminEntraGroupName": {
-    "type": "string",
-    "description": "The name of the Entra security group which represents elevated users in PIM."
-  },
-  "cspServicePrincipalId": {
-    "type": "string",
-    "description": "Optional id of the CSP service principle."
-  },
-  "subscriptionsToIgnore": {
-    "type": "array",
-    "description": "An optional array of subscription ids which should be ignored by CAF scripts."
-  },
-  "managementGroupsToIgnore": {
-    "type": "array",
-    "description": "An optional array of management group ids which should be ignored by CAF scripts."
-  },
-  "managementAssetsPath": {
-    "type": "string",
-    "description": "The relative path to access Bicep or Terraform resources needed for CAF-enablement."
+  "$id": "https://devdeer.com/azcontext.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AzureContextOptions",
+  "type": "object",
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "description": "The GUID of the tenant which is holding management resources."
+    },
+    "managementSubscriptionId": {
+      "type": "string",
+      "description": "The GUID of the subscription which is holding management resources."
+    },
+    "companyShort": {
+      "type": "string",
+      "description": "The shortcut representing the company part in resource names."
+    },
+    "companyName": {
+      "type": "string",
+      "description": "The name of your company."
+    },
+    "isRoot": {
+      "type": "boolean",
+      "description": "Defines if this is the root .azcontext so the searcher will not search up the tree."
+    },
+    "forceContext": {
+      "type": "boolean",
+      "description": "Defines if the context will be set in any case to the tenant and subscription provided here."
+    },
+    "adminEntraGroupName": {
+      "type": "string",
+      "description": "The name of the Entra security group which represents elevated users in PIM."
+    },
+    "cspServicePrincipalId": {
+      "type": "string",
+      "description": "Optional id of the CSP service principle."
+    },
+    "subscriptionsToIgnore": {
+      "type": "array",
+      "description": "An optional array of subscription ids which should be ignored by CAF scripts."
+    },
+    "managementGroupsToIgnore": {
+      "type": "array",
+      "description": "An optional array of management group ids which should be ignored by CAF scripts."
+    },
+    "managementAssetsPath": {
+      "type": "string",
+      "description": "The relative path to access Bicep or Terraform resources needed for CAF-enablement."
+    }
   }
 }
