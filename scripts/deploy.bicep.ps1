@@ -1,7 +1,7 @@
 # This script assumes that it gets executed in a directory where the
 # DEVDEER Bicep Templates are present.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-03-25
 
 [CmdletBinding()]
