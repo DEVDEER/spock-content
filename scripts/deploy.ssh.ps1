@@ -1,6 +1,6 @@
 # Is used by the template which generates managed SSH keys.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-03-25
 
 param(
