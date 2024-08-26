@@ -5,7 +5,6 @@
 # Latest update: 2024-08-24
 [CmdletBinding()]
 param (
-    [Parameter()]
     [Parameter(Mandatory = $true)]
     [string]
     $TenantId = "",
