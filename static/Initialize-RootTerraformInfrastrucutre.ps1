@@ -1,29 +1,33 @@
 # This script aims to solve the chicken and egg problem by initializing the tenant with
-# infrastructure resources that are required for future the Terraform useage.
+# infrastructure resources that are required for infrastrucutre management by Terraform.
 #
 # Copyright DEVDEER GmbH 2024
 # Latest update: 2024-08-24
 [CmdletBinding()]
 param (
     [Parameter()]
+    [Parameter(Mandatory = $true)]
     [string]
-    $TenantId = "18ca94d4-b294-485e-b973-27ef77addb3e",
+    $TenantId = "",
+    [Parameter(Mandatory = $true)]
     [string]
-    $SubscriptionId = "c764670f-e928-42c2-86c1-e984e524018a",
+    $SubscriptionId = "",
     [string]
-    $ResourceGroupName = "rg-infrastrucutre-managemen8t",
+    $ResourceGroupName = "rg-infrastrucutre-management",
     [string]
     $Location = "West Europe",
     [string]
     $StorageAccountName = "cafterraformstate",
+    [Parameter(Mandatory = $true)]
     [string]
-    $KeyVaultName = "akv-dd-terraform",
+    $KeyVaultName = "",
     [string]
-    $ServicePrincipalName = "sp-terraform-test",
+    $ServicePrincipalName = "sp-terraform-client",
     [string]
     $Role = "Owner",
+    [Parameter(Mandatory = $true)]
     [string]
-    $ScopeId = "/providers/Microsoft.Management/managementGroups/DEVDEER-ROOT"
+    $ScopeId = ""
 )
 $errorActionPreference = "Stop"
 # Set the expiration date for the service principal credentials to 1 year from now
