@@ -16,7 +16,7 @@ param (
     [string]
     $Location = "West Europe",
     [string]
-    $StorageAccountName = "infrastructuremanagementstate",
+    $StorageAccountName = "infrastructurestate",
     [string]
     $StorageContainerName = "tfstate",
     [Parameter(Mandatory = $true)]
