@@ -1,7 +1,7 @@
 # This script assumes that it gets executed in a directory where
 # a main.bicep file is present.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-03-25
 
 # ensure that we are inside the scripts directory so that we can use relative paths

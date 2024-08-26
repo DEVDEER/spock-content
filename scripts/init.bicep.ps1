@@ -1,7 +1,7 @@
 # This script installs the Nuget package devdeer.Templates.Bicep in the current directory
 # and tries to clean it up afterwards.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-03-25
 
 if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
