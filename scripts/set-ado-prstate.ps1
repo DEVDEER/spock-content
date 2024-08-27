@@ -1,6 +1,6 @@
 # This script uses the Azure DevOps Rest API to set the values of a state in a given PR.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-06-22
 
 param (

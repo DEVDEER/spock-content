@@ -5,7 +5,7 @@
 # 0 on sucess or 1 on any failure so that the CD process can understand if
 # the test was successful.
 #
-# Copyright DEVDEER GmbH 2023
+# Copyright DEVDEER GmbH 2024
 # Latest update: 2023-03-25
 
 [CmdletBinding()]
