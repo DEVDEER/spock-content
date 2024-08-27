@@ -14,16 +14,10 @@ param (
     [string]
     $ResourceGroupName = "rg-infrastructure-management",
     [string]
-<<<<<<< HEAD
-    $Location = "West Europe",
-    [string]
-    $StorageAccountName = "infrastructurestate",
-=======
     $Location = "westeurope",
     [Parameter(Mandatory = $true)]
     [string]
     $StorageAccountName,
->>>>>>> d871cd43eee53e6c674188c602ba609a3d0f26a1
     [string]
     $StorageContainerName = "tfstate",
     [Parameter(Mandatory = $true)]
@@ -37,11 +31,7 @@ param (
     [string]
     $ScopeId
 )
-<<<<<<< HEAD
-$errorActionPreference = "Stop"
-=======
 $ErrorActionPreference = "Stop"
->>>>>>> d871cd43eee53e6c674188c602ba609a3d0f26a1
 # Set the expiration date for the service principal credentials to 1 year from now
 $now = Get-Date
 $expiration = $now.AddYears(1)
@@ -91,7 +81,6 @@ else {
     Start-Sleep -Seconds 10
     Write-Host "Key vault '$KeyVaultName' created" -ForegroundColor Green
 }
-<<<<<<< HEAD
 # Check if the service principal already exists. if it does skip it and store the credentials in the key vault
 $sp = Get-AzADServicePrincipal -DisplayName $ServicePrincipalName -ErrorAction SilentlyContinue
 if ($sp) {
@@ -106,12 +95,6 @@ if ($sp) {
         New-AzRoleAssignment -ObjectId $sp.Id -RoleDefinitionName $Role -Scope $ScopeId
         Write-Host "Assigned role '$Role' to service principal '$ServicePrincipalName' at scope '$ScopeId'" -ForegroundColor Green
     }
-=======
-# check if the service principal already exists. if it does skip it and store the credentials in the key vault
-$sp = Get-AzADServicePrincipal -DisplayName $ServicePrincipalName -ErrorAction SilentlyContinue
-if ($sp) {
-    Write-Host "Service principal '$ServicePrincipalName' already exists. Skipping creation" -ForegroundColor Yellow
->>>>>>> d871cd43eee53e6c674188c602ba609a3d0f26a1
 }
 else {
     # Create the service principal and assign the specified role "Owner" at the specified scope
@@ -142,8 +125,4 @@ $credential = ConvertTo-SecureString -String $storageAccountKey[0].Value -AsPlai
 $secret = Set-AzKeyVaultSecret -VaultName $keyVault.VaultName `
     -Name "tfStorageAccountAccessKey" `
     -SecretValue $credential
-<<<<<<< HEAD
 Write-Host "Stored storage account access key in key vault: $($keyVault.VaultName)"
-=======
-Write-Host "Stored storage account access key in key vault: $($keyVault.VaultName)"
->>>>>>> d871cd43eee53e6c674188c602ba609a3d0f26a1
