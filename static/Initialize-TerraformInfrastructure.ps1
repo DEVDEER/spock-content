@@ -14,9 +14,10 @@ param (
     [string]
     $ResourceGroupName = "rg-infrastructure-management",
     [string]
-    $Location = "West Europe",
+    $Location = "westeurope",
+    [Parameter(Mandatory = $true)]
     [string]
-    $StorageAccountName = "infrastructurestate",
+    $StorageAccountName
     [string]
     $StorageContainerName = "tfstate",
     [Parameter(Mandatory = $true)]
@@ -30,7 +31,7 @@ param (
     [string]
     $ScopeId
 )
-$errorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 # Set the expiration date for the service principal credentials to 1 year from now
 $now = Get-Date
 $expiration = $now.AddYears(1)
