@@ -63,6 +63,7 @@ else {
     Write-Host "Storage account '$StorageAccountName' created" -ForegroundColor Green
     # get the storage account context
     $storageAccount = Get-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName
+    write-host $storageAccount.Context
     # create a storage container
     New-AzStorageContainer -Name $StorageContainerName -Context $storageAccount.Context
     Write-Host "Storage container '$StorageContainerName' created"
