@@ -64,7 +64,7 @@ else {
     # get the storage account context
     $storageAccount = Get-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName
     # create a storage container
-    New-AzStorageContainer -Name $StorageContainerName -Context $storageAccount.Context
+    New-AzStorageContainer -Name $StorageContainerName -Context $storageAccount.Context | Out-Null
     Write-Host "Storage container '$StorageContainerName' created"
 }
 # check if the key vault already exists. if it does skip it and create the service principal
