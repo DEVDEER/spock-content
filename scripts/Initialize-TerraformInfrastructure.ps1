@@ -56,7 +56,7 @@ if ($storageAccount) {
 else {
     Write-Host "Creating storage account '$StorageAccountName' in resource group '$ResourceGroupName'"
     # create a storage account
-    New-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -SkuName Standard_LRS -Location $Location
+    $storageAccount = New-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -SkuName Standard_LRS -Location $Location
     # Wait for the storage account to be created
     Write-Host "Waiting for the storage account to be created..."
     Start-Sleep -Seconds 10
