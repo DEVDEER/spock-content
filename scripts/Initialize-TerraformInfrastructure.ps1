@@ -51,20 +51,21 @@ else {
 # check if the storage account already exists. if not create one.
 $storageAccount = Get-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -ErrorAction SilentlyContinue
 if ($storageAccount) {
+    # Storage account already exists. Skip creation
     Write-Host "Storage account '$StorageAccountName' already exists. Skipping creation" -ForegroundColor Yellow
 }
 else {
-    Write-Host "Creating storage account '$StorageAccountName' in resource group '$ResourceGroupName'"
+    # Storage account does not exist. Create it.
+    Write-Host "Creating storage account '$StorageAccountName' in resource group '$ResourceGroupName'..."
     # create a storage account
-    New-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -SkuName Standard_LRS -Location $Location
+    New-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -SkuName Standard_LRS -Location $Location | Out-Null
     # Wait for the storage account to be created
-    Write-Host "Waiting for the storage account to be created..."
     Start-Sleep -Seconds 10
     Write-Host "Storage account '$StorageAccountName' created" -ForegroundColor Green
     # get the storage account context
     $storageAccount = Get-AzStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName
     # create a storage container
-    New-AzStorageContainer -Name $StorageContainerName -Context $storageAccount.Context
+    New-AzStorageContainer -Name $StorageContainerName -Context $storageAccount.Context -WarningAction SilentlyContinue | Out-Null
     Write-Host "Storage container '$StorageContainerName' created"
 }
 # check if the key vault already exists. if it does skip it and create the service principal
@@ -73,11 +74,10 @@ if ($keyVault) {
     Write-Host "Key vault '$KeyVaultName' already exists. Skipping creation" -ForegroundColor Yellow
 }
 else {
-    Write-Host "Creating key vault '$KeyVaultName' in resource group '$ResourceGroupName'"
+    Write-Host "Creating key vault '$KeyVaultName' in resource group '$ResourceGroupName'..."
     # create a key vault
     $keyVault = New-AzKeyVault -ResourceGroupName $ResourceGroupName -VaultName $KeyVaultName -Location $Location
     # Wait for the key vault to be created
-    Write-Host "Waiting for the key vault to be created..."
     Start-Sleep -Seconds 10
     Write-Host "Key vault '$KeyVaultName' created" -ForegroundColor Green
 }
