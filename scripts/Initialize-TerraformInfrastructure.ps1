@@ -86,7 +86,7 @@ $sp = Get-AzADServicePrincipal -DisplayName $ServicePrincipalName -ErrorAction S
 if ($sp) {
     Write-Host "Service principal '$ServicePrincipalName' already exists. Skipping creation" -ForegroundColor Yellow
     # Check the service principal role assignment
-    $roleAssignment = Get-AzRoleAssignment -ObjectId $sp.AppId -Scope $ScopeId -ErrorAction SilentlyContinue
+    $roleAssignment = Get-AzRoleAssignment -ObjectId $sp.Id -Scope $ScopeId -ErrorAction SilentlyContinue
     if ($roleAssignment) {
         Write-Host "Service principal '$ServicePrincipalName' already has the role '$Role' at scope '$ScopeId'" -ForegroundColor Yellow
     }
@@ -112,8 +112,8 @@ Set-AzKeyVaultSecret -VaultName $keyVaultName `
     -Tag @{"ServicePrincipalId" = $($sp.Id); "ServicePrincipalName" = $ServicePrincipalName } | Out-Null
 Write-Host "Stored service principal credentials in key vault '$keyVaultName' with name '$ServicePrincipalName'"
 # store the service principals id in the key vault
-$spId = $sp.Id
-$credential = ConvertTo-SecureString -String $spId -AsPlainText -Force
+$spAppId = $sp.AppId
+$credential = ConvertTo-SecureString -String $spAppId -AsPlainText -Force
 $secret = Set-AzKeyVaultSecret -VaultName $keyVault.VaultName `
     -Name "TerraformClientSpId"`
     -SecretValue $credential
