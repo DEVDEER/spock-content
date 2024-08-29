@@ -86,7 +86,7 @@ $sp = Get-AzADServicePrincipal -DisplayName $ServicePrincipalName -ErrorAction S
 if ($sp) {
     Write-Host "Service principal '$ServicePrincipalName' already exists. Skipping creation" -ForegroundColor Yellow
     # Check the service principal role assignment
-    $roleAssignment = Get-AzRoleAssignment -ObjectId $sp.Id -Scope $ScopeId -ErrorAction SilentlyContinue
+    $roleAssignment = Get-AzRoleAssignment -ObjectId $sp.AppId -Scope $ScopeId -ErrorAction SilentlyContinue
     if ($roleAssignment) {
         Write-Host "Service principal '$ServicePrincipalName' already has the role '$Role' at scope '$ScopeId'" -ForegroundColor Yellow
     }
