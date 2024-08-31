@@ -36,7 +36,6 @@ $ErrorActionPreference = "Stop"
 $now = Get-Date
 $expiration = $now.AddYears(1)
 Write-Host "Initializing Terraform assets..."
-Connect-AzAccount -Tenant $TenantId -Subscription $SubscriptionId | Out-Null
 # Check if the resource group already exists. if it does skip it and create the storage account
 $resourceGroup = Get-AzResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue
 if ($resourceGroup) {
