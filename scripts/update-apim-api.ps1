@@ -242,8 +242,7 @@ function Build-Swagger() {
     }
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
-    $json | ConvertTo-Json -Depth 20 | Out-File $Output
-    cat $Output
+    $json | ConvertTo-Json -Depth 20 | Out-File $Output    
     Write-Host "Done"
     if ($ModifyProjectFile -eq $true) {
         Move-Item $tmpFile $ProjectFilename -Force
