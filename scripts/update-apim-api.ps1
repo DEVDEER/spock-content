@@ -77,7 +77,9 @@ param (
     $DryRun,
     [Parameter(Mandatory = $false)]
     [switch]
-    $SkipResultFile
+    $SkipResultFile,
+    [switch]
+    $RemoveRouteVersionPrefixes
 )
 
 $ErrorActionPreference = 'Stop'
@@ -232,7 +234,11 @@ function Build-Swagger() {
     dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
-    $json = Get-Content -Raw $Output | ConvertFrom-Json
+    $rawContent = Get-Content -Raw $Output
+    if ($RemoveRouteVersionPrefixes.IsPresent) {
+        $rawContent = $rawContent -Replace "\/api\/v[0-9]", ""
+    }
+    $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
     Write-Host "Done"
