@@ -236,11 +236,14 @@ function Build-Swagger() {
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
     if ($RemoveRouteVersionPrefixes.IsPresent) {
-        $rawContent = $rawContent -Replace "\/api\/v[0-9]", ""
+        Write-Host "Removing route version prefixes..." -NoNewLine
+        $rawContent = $rawContent -Replace "\/api\/v[0-9]", ""        
+        Write-Host "Done"
     }
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
+    cat $Output
     Write-Host "Done"
     if ($ModifyProjectFile -eq $true) {
         Move-Item $tmpFile $ProjectFilename -Force
