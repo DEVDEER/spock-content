@@ -235,14 +235,9 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
-    if ($RemoveRouteVersionPrefixes.IsPresent) {
-        Write-Host "Removing route version prefixes..." -NoNewLine
-        $rawContent = $rawContent -Replace "\/api\/v[0-9]", ""        
-        Write-Host "Done"
-    }
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
-    $json | ConvertTo-Json -Depth 20 | Out-File $Output    
+    $json | ConvertTo-Json -Depth 20 | Out-File $Output
     Write-Host "Done"
     if ($ModifyProjectFile -eq $true) {
         Move-Item $tmpFile $ProjectFilename -Force
@@ -399,6 +394,14 @@ foreach ($version in $versions) {
     }
     else {
         Write-Host "Using existing swagger file $($swaggerFile)."
+    }
+
+    if ($RemoveRouteVersionPrefixes.IsPresent) {
+        Write-Host "Removing route version prefixes..." -NoNewLine
+        $rawContent = Get-Content -Raw $swaggerFile
+        $rawContent = $rawContent -Replace "\/api\/v[0-9]", ""
+        $rawContent | Out-File $swaggerFile
+        Write-Host "Done"
     }
 
     if ($DryRun.IsPresent) {
