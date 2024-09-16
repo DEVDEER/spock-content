@@ -98,7 +98,6 @@ function Install-DotnetTool() {
     Write-Host "Ensuring Swashbuckle CLI..." -NoNewline
     dotnet tool install Swashbuckle.AspNetCore.Cli | Out-Null
     Write-Host "Done"
-    dotnet tool list
 }
 
 function Get-ProjectFileName() {
@@ -227,7 +226,6 @@ function Build-Swagger() {
         $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($ProjectFilename)
-        Write-Host "Project file was edited. Original file is at '$tmpFile'."
     }
     Write-Host "Building project..." -NoNewline
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
@@ -266,18 +264,9 @@ function TransformJson() {
                 foreach ($methodName in $method.Keys) {
                     $val = $method[$methodName]
                     $content = $val | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
-                    $hasSummary = $null -ne $content.summary
                     $summary = $content.summary ?? ''
                     $content | Add-Member -Name description -Value $summary -Type NoteProperty -Force
-                    if ($hasSummary) {
-                        # This is the default case where the method has a summary.
-                        $content.summary = $content.operationId
-                    }
-                    else {
-                        # Normally the content has no summary in case the method got inhertited and so no summary
-                        # could be obtained.
-                        $content | Add-Member -Name summary -Value $content.operationId -Type NoteProperty -Force
-                    }
+                    $content | Add-Member -Name summary -Value $content.operationId -Type NoteProperty -Force
                     $res = $content
                     $result.Add($methodName, $res)
                 }
