@@ -98,6 +98,7 @@ function Install-DotnetTool() {
     Write-Host "Ensuring Swashbuckle CLI..." -NoNewline
     dotnet tool install Swashbuckle.AspNetCore.Cli | Out-Null
     Write-Host "Done"
+    dotnet tool list
 }
 
 function Get-ProjectFileName() {
@@ -226,6 +227,7 @@ function Build-Swagger() {
         $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($ProjectFilename)
+        Write-Host "Project file was edited. Original file is at '$tmpFile'."
     }
     Write-Host "Building project..." -NoNewline
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
