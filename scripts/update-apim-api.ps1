@@ -235,7 +235,6 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
-    $rawContent
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
@@ -264,8 +263,18 @@ function TransformJson() {
                 foreach ($methodName in $method.Keys) {
                     $val = $method[$methodName]
                     $content = $val | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
-                    $content | Add-Member -Name description -Value $content.summary -Type NoteProperty -Force
-                    $content.summary = $content.operationId
+                    $hasSummary = $null -ne $content.summary
+                    $summary = $content.summary ?? ''
+                    $content | Add-Member -Name description -Value $summary -Type NoteProperty -Force
+                    if ($hasSummary) {
+                        # This is the default case where the method has a summary.
+                        $content.summary = $content.operationId
+                    }
+                    else {
+                        # Normally the content has no summary in case the method got inhertited and so no summary
+                        # could be obtained.
+                        $content | Add-Member -Name summary -Value $content.operationId -Type NoteProperty -Force
+                    }
                     $res = $content
                     $result.Add($methodName, $res)
                 }
