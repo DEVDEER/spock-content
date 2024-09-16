@@ -237,6 +237,7 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
+    $rawContent
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
