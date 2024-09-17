@@ -334,7 +334,6 @@ Write-Host $settingsFile
 if (!(Test-Path $settingsFile)) {
     # We don't have an appsettings.json here. In CI this is normal because we should run inside of the project folder. This
     # means that we are currently not in a CI pipeline.
-    Write-Host "No appsettings.json found in PWD. Trying to find it in the project folder..."
     $settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
 }
 Write-Host "Reading $settingsFile..."
@@ -374,8 +373,10 @@ foreach ($version in $versions) {
     Write-Host "------------------------------------------------------------------------------`n"
 
     if (!$UseExistingSwaggerFiles.IsPresent) {
+        Write-Host "Here Debug"
         # delete the result file
         if (Test-Path -Path $resultFile) {
+            Write-Host "$resultFile exists. Deleting it..."
             Remove-Item $resultFile
         }
         # generate swagger json document
@@ -384,8 +385,10 @@ foreach ($version in $versions) {
             # assembly name was not passed in as parameter -> read it from the project file
             $AssemblyName = Get-AssemblyName -Filename $projectFileName
         }
+        Write-Host "project file name is: $projectFileName"
         Write-Host "Resolved assembly name is [$AssemblyName]."
         $docType = Test-ProjectSettings -FileName $projectFileName
+        Write-Host "docType is: $docType"
         if ($docType -eq 0) {
             throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
         }
