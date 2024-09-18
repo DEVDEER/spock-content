@@ -233,7 +233,7 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Generating swagger..." -NoNewline
     Write-Host "dotnet swagger tofile --output $Output './bin/swagger/$AssemblyName.dll' $ApiVersion"
-    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
+    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
