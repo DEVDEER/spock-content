@@ -228,9 +228,11 @@ function Build-Swagger() {
         $content.Save($ProjectFilename)
     }
     Write-Host "Building project..." -NoNewline
-    dotnet build -c Release -o bin/swagger $PWD | Out-Null
+    dotnet build -c Release -o bin/swagger $PWD
+    Write-Host "here: $PWD"
     Write-Host "Done"
     Write-Host "Generating swagger..." -NoNewline
+    Write-Host "dotnet swagger tofile --output $Output './bin/swagger/$AssemblyName.dll' $ApiVersion"
     dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
