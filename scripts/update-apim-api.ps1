@@ -89,9 +89,6 @@ function Install-DotnetTool() {
         .SYNOPSIS
         Ensures that the dotnet Swashbuckle CLI is installed locally in this folder.
     #>
-    if (Test-Path "$PWD/dotnet-swagger") {
-        Write-Host "Skipping dotnet tool install because custom version is provided."
-    }
     $configPath = "$PWD/.config/dotnet-tools.json"
     if (!(Test-Path $configPath)) {
         Write-Host "Creating dotnet tool manifest..." -NoNewline
@@ -235,13 +232,7 @@ function Build-Swagger() {
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
     Write-Host "Done"
     Write-Host "Generating swagger..."
-    if (Test-Path "$PWD/dotnet-swagger") {
-        cp "$PWD/dotnet-swagger/*" .
-        ./dotnet-swagger tofile --output $Output ./bin/swagger/$AssemblyName.dll $ApiVersion
-    }
-    else {
-        dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
-    }
+    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
     $json = $rawContent | ConvertFrom-Json
