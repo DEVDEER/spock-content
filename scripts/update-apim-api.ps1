@@ -300,7 +300,7 @@ $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$Com
 # setting the DOTNET_ENVIRONMENT variable to a valid .NET stage so that later steps can act as if they are running on that stage
 $environmentStage = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
 $env:DOTNET_ENVIRONMENT = $environmentStage
-$env:ASPDOTNET_ENVIRONMENT = $environmentStage
+$env:ASPNETCORE_ENVIRONMENT = $environmentStage
 Write-Host "Environment is set to stage '$environmentStage'."
 $swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 if ($UseExistingSwaggerFiles.IsPresent) {
