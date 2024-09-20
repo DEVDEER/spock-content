@@ -236,7 +236,8 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Generating swagger..."
     if (Test-Path "$PWD/dotnet-swagger") {
-        "$PWD/dotnet-swagger/dotnet-swagger tofile --output $Output ./bin/swagger/$AssemblyName.dll $ApiVersion"
+        cp "$PWD/dotnet-swagger/*" .
+        ./dotnet-swagger tofile --output $Output ./bin/swagger/$AssemblyName.dll $ApiVersion
     }
     else {
         dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
