@@ -227,7 +227,6 @@ function Build-Swagger() {
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($ProjectFilename)
         Write-Host "[$ProjectFilename] was set to dotnet-swagger.xml doc file."
-        cat 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
     }
     Write-Host "Building project..." -NoNewline
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
