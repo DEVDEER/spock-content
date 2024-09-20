@@ -229,7 +229,7 @@ function Build-Swagger() {
         Write-Host "[$ProjectFilename] was set to dotnet-swagger.xml doc file."
     }
     Write-Host "Building project..." -NoNewline
-    dotnet build -c Release -o bin/swagger $PWD
+    dotnet build -c Release -o bin/swagger $PWD | Out-Null
     Write-Host "Done"
     Write-Host "Generating swagger..."
     dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
