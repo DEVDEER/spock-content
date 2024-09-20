@@ -330,8 +330,6 @@ else {
 
 Write-Host "Retrieving all Swagger versions from app settings file... "
 $settingsFile = "$PWD/appsettings.json"
-Write-Host "PWD is set to '$PWD'."
-Write-Host $settingsFile
 if (!(Test-Path $settingsFile)) {
     # We don't have an appsettings.json here. In CI this is normal because we should run inside of the project folder. This
     # means that we are currently not in a CI pipeline.
