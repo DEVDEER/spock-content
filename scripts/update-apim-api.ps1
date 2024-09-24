@@ -96,7 +96,7 @@ function Install-DotnetTool() {
         Write-Host "Done"
     }
     Write-Host "Ensuring Swashbuckle CLI..." -NoNewline
-    dotnet tool install Swashbuckle.AspNetCore.Cli | Out-Null
+    dotnet tool install Swashbuckle.AspNetCore.Cli --version 6.7.3 | Out-Null
     Write-Host "Done"
 }
 
