@@ -235,7 +235,6 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
-    $rawContent
     $json = $rawContent | ConvertFrom-Json
     $json.info.title = $json.info.title.replace('(Production)', "($($env:DOTNET_ENVIRONMENT))")
     $json | ConvertTo-Json -Depth 20 | Out-File $Output
@@ -460,6 +459,16 @@ foreach ($version in $versions) {
         -ApiId $apiId `
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
+
+    Write-Host "Delete old releases... " -NoNewline
+    $minDate = (Get-Date).AddDays(-30)
+    $actualReleases = (Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId | Where-Object { $_.CreatedDateTime -ge $minDate }).Count
+    if ($actualReleases -eq 0) {
+        Write-Host "Cannot remove old releases because no new release in last 30 days! Skipping."
+    } else {
+        Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId | Where-Object { $_.CreatedDateTime -lt $minDate } | Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx
+        Write-Host "Done"
+    }
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
