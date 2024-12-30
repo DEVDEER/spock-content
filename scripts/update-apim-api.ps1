@@ -96,7 +96,7 @@ function Install-DotnetTool() {
         Write-Host "Done"
     }
     Write-Host "Ensuring Swashbuckle CLI..." -NoNewline
-    dotnet tool install Swashbuckle.AspNetCore.Cli | Out-Null
+    dotnet tool install Swashbuckle.AspNetCore.Cli --version 6.7.3 | Out-Null
     Write-Host "Done"
 }
 
@@ -226,13 +226,13 @@ function Build-Swagger() {
         $propGroup = $content.Project.PropertyGroup.Count -gt 1 ? $content.Project.PropertyGroup[0] : $content.Project.PropertyGroup
         $propGroup.DocumentationFile = 'bin\$(Configuration)\$(TargetFramework)\dotnet-swagger.xml'
         $content.Save($ProjectFilename)
+        Write-Host "[$ProjectFilename] was set to dotnet-swagger.xml doc file."
     }
     Write-Host "Building project..." -NoNewline
     dotnet build -c Release -o bin/swagger $PWD | Out-Null
     Write-Host "Done"
-    Write-Host "Generating swagger..." -NoNewline
-    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion | Out-Null
-    Write-Host "Done"
+    Write-Host "Generating swagger..."
+    dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
     $json = $rawContent | ConvertFrom-Json
@@ -298,8 +298,10 @@ $webAppResourceGroup = "rg-$ProjectName-$TargetStage"
 $resourceGroup = $ApiManagementResourceGroup.Length -gt 0 ? $ApiManagementResourceGroup : "rg-$technicalProjectName-shared"
 $apiMgmtName = $ApiManagementName.Length -gt 0 ? $ApiManagementName : "apim-$CompanyShortKey-$technicalProjectName"
 # setting the DOTNET_ENVIRONMENT variable to a valid .NET stage so that later steps can act as if they are running on that stage
-$env:DOTNET_ENVIRONMENT = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
-
+$environmentStage = "$($fullStageName.Substring(0,1).ToUpperInvariant())$($fullStageName.Substring(1))"
+$env:DOTNET_ENVIRONMENT = $environmentStage
+$env:ASPNETCORE_ENVIRONMENT = $environmentStage
+Write-Host "Environment is set to stage '$environmentStage'."
 $swaggerFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 if ($UseExistingSwaggerFiles.IsPresent) {
     # caller has somehow ensured that swagger*.json files in the correct pattern are present at the PWD
@@ -372,6 +374,7 @@ foreach ($version in $versions) {
     if (!$UseExistingSwaggerFiles.IsPresent) {
         # delete the result file
         if (Test-Path -Path $resultFile) {
+            Write-Host "$resultFile exists. Deleting it..."
             Remove-Item $resultFile
         }
         # generate swagger json document
@@ -380,8 +383,10 @@ foreach ($version in $versions) {
             # assembly name was not passed in as parameter -> read it from the project file
             $AssemblyName = Get-AssemblyName -Filename $projectFileName
         }
-        Write-Host "Resolved assembly name is [$AssemblyName]."
+        Write-Host "Project file name is: $projectFileName"
+        Write-Host "Resolved assembly name is: $AssemblyName"
         $docType = Test-ProjectSettings -FileName $projectFileName
+        Write-Host "DocType is: $docType"
         if ($docType -eq 0) {
             throw "The project does not generate XML documentations. Add <GenerateDocumentationFile/> and/or <DocumentationFile/> tags."
         }
