@@ -473,9 +473,21 @@ foreach ($version in $versions) {
     $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
     $count = $remaining.Count
     if ($count -gt $MaximumReleaseAmount) {
+        $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete
+        if ($locks.Count -gt 1) {
+            throw "There are $($lock.Count) delete lock on $resourceGroup but expected was 0 or 1"
+        }
+        if ($locks.Count -eq 1) {
+            $lock = $locks[0]
+            $lock | Remove-AzResourceLock -Force | Out-Null
+        }
         for ($i = $MaximumReleaseAmount; $i -lt $count - 1; $i++) {
             Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $remaining[$i].ReleaseId
             $releasesToRemove++
+        }
+        if ($lock) {
+            $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
+            New-AzResourceLock -Scope $scope -LockLevel $lock.Properties.Level -Force | Out-Null
         }
     }
     Write-Host "Done ($releasesToRemove deleted)"
