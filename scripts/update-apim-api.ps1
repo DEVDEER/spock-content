@@ -470,7 +470,7 @@ foreach ($version in $versions) {
     while ($true) {
         $rg = Get-AzResourceGroup -Name $resourceGroup
         $tags = $rg.Tags
-        $another = ($tags | Where { $_.Name -eq 'deployment' }).Count -gt 0
+        $another = ($tags | Where-Object { $_.Name -eq 'deployment' }).Count -gt 0
         if (!$another) {
             break
         }
@@ -481,7 +481,7 @@ foreach ($version in $versions) {
     Write-Host "Setting deploy lock..." -NoNewline
     $rg = Get-AzResourceGroup -Name $resourceGroup
     $tags = $rg.Tags
-    $tags += @{ Name="deployment";Value=$apiId }
+    $tags += @{ deployment=$apiId }
     Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
     Write-Host "Done"
 
