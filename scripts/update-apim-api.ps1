@@ -467,10 +467,10 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
-    Write-Host "Delete old releases... " -NoNewline
+    Write-Host "Delete old releases..." -NoNewline
     $removedReleases = 0
-    $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
-    $foundReleases = $remaining.Count
+    $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
+    $foundReleases = $currentReleases.Count
     if ($foundReleases -gt $MaximumReleaseAmount) {
         # get delete-lock of resource group
         # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
@@ -486,7 +486,7 @@ foreach ($version in $versions) {
             $lock | Remove-AzResourceLock -Force | Out-Null
         }
         for ($i = $MaximumReleaseAmount; $i -lt $foundReleases - 1; $i++) {
-            Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $remaining[$i].ReleaseId
+            Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
             $removedReleases++
         }
         if ($lock) {
