@@ -470,7 +470,7 @@ foreach ($version in $versions) {
     while ($true) {
         $rg = Get-AzResourceGroup -Name $resourceGroup
         $tags = $rg.Tags
-        $another = ($tags | Where-Object { $_.Name -eq 'deployment' }).Count -gt 0
+        $another = ($tags | Where-Object deployment -ne $null).Count -gt 0
         if (!$another) {
             break
         }
