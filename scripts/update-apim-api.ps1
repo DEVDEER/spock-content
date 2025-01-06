@@ -517,6 +517,9 @@ foreach ($version in $versions) {
 
     Write-Host "Removing deploy lock..." -NoNewline
     $tags = $tags.Remove('deployment')
+    if ($null -eq $tags) {
+        $tags = @{}
+    }
     Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
     Write-Host "Done"
 
