@@ -468,7 +468,6 @@ foreach ($version in $versions) {
     Write-Host "Done"
 
     Write-Host "Delete old releases... " -NoNewline
-
     $releasesToRemove = 0
     $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
     $count = $remaining.Count
