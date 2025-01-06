@@ -70,6 +70,10 @@ param (
     [Parameter(Mandatory = $false)]
     [string]
     $OutputDirectory,
+    [Parameter(Mandatory = $false)]
+    $MaximumReleaseAgeInDays = 30,
+    [Parameter(Mandatory = $false)]
+    $MaximumReleaseAmount = 20,
     [Switch]
     $UseExistingSwaggerFiles,
     [Parameter(Mandatory = $false)]
@@ -466,14 +470,22 @@ foreach ($version in $versions) {
     Write-Host "Done"
 
     Write-Host "Delete old releases... " -NoNewline
-    $minDate = (Get-Date).AddDays(-30)
-    $actualReleases = (Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId | Where-Object { $_.CreatedDateTime -ge $minDate }).Count
-    if ($actualReleases -eq 0) {
-        Write-Host "Cannot remove old releases because no new release in last 30 days! Skipping."
-    } else {
+
+    $minDate = (Get-Date).AddDays($MaximumReleaseAgeInDays * -1)
+    $releasesToRemove = (Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId | Where-Object { $_.CreatedDateTime -ge $minDate }).Count
+    if ($releasesToRemove -gt 0) {
+    # delete oldest entries
         Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId | Where-Object { $_.CreatedDateTime -lt $minDate } | Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx
-        Write-Host "Done"
     }
+    $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
+    $count = $remaining.Count
+    if ($count -gt $MaximumReleaseAmount) {
+        for ($i = $MaximumReleaseAmount; $i -lt $count - 1; $i++) {
+            Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $remaining[$i].ReleaseId
+            $releasesToRemove++
+        }
+    }
+    Write-Host "Done ($releasesToRemove deleted)"
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
