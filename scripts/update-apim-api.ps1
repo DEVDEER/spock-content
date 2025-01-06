@@ -467,6 +467,24 @@ foreach ($version in $versions) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
 
+    while ($true) {
+        $rg = Get-AzResourceGroup -Name $resourceGroup
+        $tags = $rg.Tags
+        $another = ($tags | Where { $_.Name -eq 'deployment' }).Count -gt 0
+        if (!$another) {
+            break
+        }
+        Write-Host "Another deployment currently running. Waiting."
+        Start-Sleep 2
+    }
+
+    Write-Host "Setting deploy lock..." -NoNewline
+    $rg = Get-AzResourceGroup -Name $resourceGroup
+    $tags = $rg.Tags
+    $tags += @{ Name="deployment";Value=$apiId }
+    Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
+    Write-Host "Done"
+
     Write-Host "Delete old releases..." -NoNewline
     $removedReleases = 0
     $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
@@ -496,6 +514,11 @@ foreach ($version in $versions) {
         }
     }
     Write-Host "Done ($removedReleases of $foundReleases deleted)"
+
+    Write-Host "Removing deploy lock..." -NoNewline
+    $tags = $tags.Remove('deployment')
+    Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
+    Write-Host "Done"
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
