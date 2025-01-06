@@ -487,7 +487,7 @@ foreach ($version in $versions) {
         }
         if ($lock) {
             $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
-            New-AzResourceLock -Scope $scope -LockLevel $lock.Properties.Level -Force | Out-Null
+            New-AzResourceLock -Scope $scope -LockNotes $lock.Properties.notes -LockLevel $lock.Properties.Level -Force | Out-Null
         }
     }
     Write-Host "Done ($releasesToRemove deleted)"
