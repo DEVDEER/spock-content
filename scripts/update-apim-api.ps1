@@ -468,10 +468,10 @@ foreach ($version in $versions) {
     Write-Host "Done"
 
     Write-Host "Delete old releases... " -NoNewline
-    $releasesToRemove = 0
+    $removedReleases = 0
     $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
-    $count = $remaining.Count
-    if ($count -gt $MaximumReleaseAmount) {
+    $foundReleases = $remaining.Count
+    if ($foundReleases -gt $MaximumReleaseAmount) {
         # get delete-lock of resource group
         # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
         # holding the API management. If the API Management itself has a lock or more than 1 is inherited
@@ -485,9 +485,9 @@ foreach ($version in $versions) {
             $lock = $locks[0]
             $lock | Remove-AzResourceLock -Force | Out-Null
         }
-        for ($i = $MaximumReleaseAmount; $i -lt $count - 1; $i++) {
+        for ($i = $MaximumReleaseAmount; $i -lt $foundReleases - 1; $i++) {
             Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $remaining[$i].ReleaseId
-            $releasesToRemove++
+            $removedReleases++
         }
         if ($lock) {
             # re-apply deleted lock
@@ -495,7 +495,7 @@ foreach ($version in $versions) {
             New-AzResourceLock -Scope $scope -LockNotes $lock.Properties.notes -LockLevel $lock.Properties.Level -Force | Out-Null
         }
     }
-    Write-Host "Done ($releasesToRemove deleted)"
+    Write-Host "Done ($removedReleases of $foundReleases deleted)"
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
