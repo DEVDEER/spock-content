@@ -473,11 +473,16 @@ foreach ($version in $versions) {
     $remaining = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
     $count = $remaining.Count
     if ($count -gt $MaximumReleaseAmount) {
-        $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete
+        # get delete-lock of resource group
+        # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
+        # holding the API management. If the API Management itself has a lock or more than 1 is inherited
+        # then this logic will currently fail.
+        $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
         if ($locks.Count -gt 1) {
-            throw "There are $($lock.Count) delete lock on $resourceGroup but expected was 0 or 1"
+            throw "There are $($lock.Count) delete locks on $resourceGroup but expected was 0 or 1."
         }
         if ($locks.Count -eq 1) {
+            # delete existing lock
             $lock = $locks[0]
             $lock | Remove-AzResourceLock -Force | Out-Null
         }
@@ -486,6 +491,7 @@ foreach ($version in $versions) {
             $releasesToRemove++
         }
         if ($lock) {
+            # re-apply deleted lock
             $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
             New-AzResourceLock -Scope $scope -LockNotes $lock.Properties.notes -LockLevel $lock.Properties.Level -Force | Out-Null
         }
