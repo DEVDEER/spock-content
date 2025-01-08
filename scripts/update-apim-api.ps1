@@ -511,7 +511,11 @@ foreach ($version in $versions) {
         if ($lock) {
             # re-apply deleted lock
             $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
-            New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lock.Properties.notes ?? 'Do not delete.' -LockLevel $lock.Properties.Level -Force | Out-Null
+            $lockNotes = $lock.Properties.notes
+            if ($null -eq $lockNotes -or $lockNotes.Length -eq 0)  {
+                $lockNotes = 'Do not delete.'
+            }
+            New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
         }
     }
     Write-Host "Done ($removedReleases of $foundReleases deleted)"
