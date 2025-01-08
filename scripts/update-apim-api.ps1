@@ -502,7 +502,15 @@ foreach ($version in $versions) {
             # delete existing lock
             $lock = $locks[0]
             $lock | Remove-AzResourceLock -Force | Out-Null
-            Start-Sleep 5
+            while (true) {
+                # We need to wait for the lock to be removed
+                $remainingLocks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
+                if ($remainingLocks.Count -eq 0) {
+                    break
+                }
+                Write-Host "." -NoNewline
+                Start-Sleep 3
+            }
         }
         for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
             Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
