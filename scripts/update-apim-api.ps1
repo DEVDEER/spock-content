@@ -504,7 +504,7 @@ foreach ($version in $versions) {
             $lock | Remove-AzResourceLock -Force | Out-Null
             Start-Sleep 5
         }
-        for ($i = $MaximumReleaseAmount; $i -lt $foundReleases - 1; $i++) {
+        for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
             Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
             $removedReleases++
         }
