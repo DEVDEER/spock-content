@@ -504,12 +504,12 @@ foreach ($version in $versions) {
             $lock | Remove-AzResourceLock -Force | Out-Null
             while (true) {
                 # We need to wait for the lock to be removed
+                Start-Sleep 10
                 $remainingLocks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
                 if ($remainingLocks.Count -eq 0) {
                     break
                 }
                 Write-Host "." -NoNewline
-                Start-Sleep 3
             }
         }
         for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
