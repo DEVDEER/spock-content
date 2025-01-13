@@ -23,7 +23,7 @@ param (
     $StatusDescription = ''
 )
 # Install and import the Az module
-Install-PSResource Az.Accounts -Force -AllowClobber -Scope CurrentUser
+Install-PSResource Az.Accounts -TrustRepository -Scope CurrentUser
 Get-InstalledModule Az.Accounts -AllVersions
 Import-Module Az.Accounts -Global -Force
 $baseUrl = "$($CollectionUri)$($ProjectName)/_apis"
