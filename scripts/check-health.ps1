@@ -26,11 +26,14 @@ param (
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net/$HealthCheckPath"
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net
+if ($HealthCheckPath -ne '/') {
+    $url += "/$HealthCheckPath"
+}
 $statusOk = $false
 while ($tries -lt $MaxRetries -and !$statusOk) {
     $tries++
-    Start-Sleep -Seconds 5
+    Start-Sleep -Seconds 5    
     Write-Host "Sending request to $url ($tries of $MaxRetries times) ... " -NoNewLine
     try {
         $response = Invoke-WebRequest $url
