@@ -26,7 +26,7 @@ param (
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
-$url = "https://$AppName-$Stage-deploy.azurewebsites.net
+$url = "https://$AppName-$Stage-deploy.azurewebsites.net"
 if ($HealthCheckPath -ne '/') {
     $url += "/$HealthCheckPath"
 }
