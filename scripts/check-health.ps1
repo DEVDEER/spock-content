@@ -22,7 +22,9 @@ param (
     $HealthCheckPath = "health",
     [Parameter()]
     [int]
-    $MaxRetries = 10
+    $MaxRetries = 10,
+    [switch]
+    $NoContentCheck
 )
 Write-Host "Trying to retrieve response from API on Slot..."
 $tries = 0
@@ -40,6 +42,11 @@ while ($tries -lt $MaxRetries -and !$statusOk) {
         $apiState = $response.StatusCode
         Write-Host "OK $apiState" -ForegroundColor Green
         if ($apiState -eq 200) {
+            if ($NoContentCheck.IsPresent) {
+                $statusOk = $true
+                Write-Host "Endpoint responding." -ForegroundColor Green
+                continue
+            }
             # check response JSON
             $json = $response.Content | ConvertFrom-Json
             $statusOk = $json.OverallStatus -eq 'Healthy'
