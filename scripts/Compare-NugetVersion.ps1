@@ -1,4 +1,11 @@
-function Get-LocalNetVersion($ProjectFile, [switch]$AddBeta) {
+[CmdletBinding()]
+param (
+    [string]$ProjectFile,
+    [string]$PackageId,
+    [switch]$AddBeta
+)
+
+function Get-LocalNetVersion([string]$ProjectFile, [switch]$AddBeta) {
     [xml]$xml = Get-Content -Raw $ProjectFile
     $propGroup = $xml.Project.PropertyGroup.Count -gt 1 ? $xml.Project.PropertyGroup[0] : $xml.Project.PropertyGroup
     $version = $propGroup.PackageVersion
@@ -11,11 +18,6 @@ function Get-LocalNetVersion($ProjectFile, [switch]$AddBeta) {
 function Get-NugetVersion([string]$PackageId) {
     $latest = (Find-Package -Name $PackageId -ProviderName NuGet -AllowPrereleaseVersions -AllVersions)[0]
     return $latest.Version
-}
-
-function Get-PowerShellGalleryVersion([string]$ModuleId) {
-    $latest = (Get-PSResource $ModuleId)[0]
-    return $latest.Version.ToString()
 }
 
 function Get-VersionValue([string]$Version) {
@@ -33,3 +35,23 @@ function Compare-SemanticVersions([string]$Version1, [string]$Version2) {
     $number2 = Get-VersionValue $Version2
     return $number1 -eq $number2 ? 0 : $number1 -lt $number2 ? -1 : 1
 }
+
+$local = Get-LocalVersion -ProjectFile $ProjectFile -AddBeta
+$nuget = Get-NugetVersion $PackageId
+$result = Compare-SemanticVersions $local $nuget
+if ($result -eq 0) {
+    Write-Host "Local version $local is equal to Nuget version $nuget"
+    return
+}
+elseif ($result -eq -1) {
+    Write-Host "Local version $local is older than Nuget version $nuget"
+    return
+}
+elseif ($result -eq 1) {
+    Write-Host "Local version $local is newer than Nuget version $nuget"
+    return
+}
+else {
+    throw "Something went wrong when comparing local $local with nuget $nuget"
+}
+return $result
