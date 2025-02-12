@@ -1,6 +1,5 @@
-function Get-LocalVersion([switch]$AddBeta) {
-    $file = './Infrastructure/devdeer.Spock.Infrastructure.csproj'
-    [xml]$xml = Get-Content -Raw $file
+function Get-LocalNetVersion($ProjectFile, [switch]$AddBeta) {
+    [xml]$xml = Get-Content -Raw $ProjectFile
     $propGroup = $xml.Project.PropertyGroup.Count -gt 1 ? $xml.Project.PropertyGroup[0] : $xml.Project.PropertyGroup
     $version = $propGroup.PackageVersion
     if ($AddBeta.IsPresent -and !$version.EndsWith("-beta")) {
