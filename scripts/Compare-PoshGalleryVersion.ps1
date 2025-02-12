@@ -34,7 +34,7 @@ function Compare-SemanticVersions([string]$Version1, [string]$Version2) {
     return $number1 -eq $number2 ? 0 : $number1 -lt $number2 ? -1 : 1
 }
 
-$local = Get-LocalVersion -PsdFile $PsdFile -AddBeta
+$local = Get-LocalPsdVersion -PsdFile $PsdFile -AddBeta
 $nuget = Get-PowerShellGalleryVersion $ModuleId
 $result = Compare-SemanticVersions $local $nuget
 if ($result -eq 0) {

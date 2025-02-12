@@ -36,7 +36,7 @@ function Compare-SemanticVersions([string]$Version1, [string]$Version2) {
     return $number1 -eq $number2 ? 0 : $number1 -lt $number2 ? -1 : 1
 }
 
-$local = Get-LocalVersion -ProjectFile $ProjectFile -AddBeta
+$local = Get-LocalNetVersion -ProjectFile $ProjectFile -AddBeta
 $nuget = Get-NugetVersion $PackageId
 $result = Compare-SemanticVersions $local $nuget
 if ($result -eq 0) {
