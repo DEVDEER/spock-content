@@ -2,7 +2,8 @@
 param (
     [string]$ProjectFile,
     [string]$PackageId,
-    [switch]$AddBeta
+    [switch]$AddBeta,
+    [string]$DebugSetting = 'Continue'
 )
 
 function Get-LocalNetVersion([string]$ProjectFile, [switch]$AddBeta) {
@@ -36,20 +37,18 @@ function Compare-SemanticVersions([string]$Version1, [string]$Version2) {
     return $number1 -eq $number2 ? 0 : $number1 -lt $number2 ? -1 : 1
 }
 
+$DebugPreference = $DebugSetting
 $local = Get-LocalNetVersion -ProjectFile $ProjectFile -AddBeta
 $nuget = Get-NugetVersion $PackageId
 $result = Compare-SemanticVersions $local $nuget
 if ($result -eq 0) {
-    Write-Host "Local version $local is equal to Nuget version $nuget"
-    return
+    Write-Debug "Local version $local is equal to Nuget version $nuget"
 }
 elseif ($result -eq -1) {
-    Write-Host "Local version $local is older than Nuget version $nuget"
-    return
+    Write-Debug "Local version $local is older than Nuget version $nuget"
 }
 elseif ($result -eq 1) {
-    Write-Host "Local version $local is newer than Nuget version $nuget"
-    return
+    Write-Debug "Local version $local is newer than Nuget version $nuget"
 }
 else {
     throw "Something went wrong when comparing local $local with nuget $nuget"

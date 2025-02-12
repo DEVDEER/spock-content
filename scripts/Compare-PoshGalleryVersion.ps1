@@ -2,7 +2,8 @@
 param (
     [string]$PsdFile,
     [string]$ModuleId,
-    [switch]$AddBeta
+    [switch]$AddBeta,
+    [string]$DebugSetting = 'Continue'
 )
 
 function Get-LocalPsdVersion([string]$PsdFile, [switch]$AddBeta) {
@@ -34,20 +35,18 @@ function Compare-SemanticVersions([string]$Version1, [string]$Version2) {
     return $number1 -eq $number2 ? 0 : $number1 -lt $number2 ? -1 : 1
 }
 
+$DebugPreference = $DebugSetting
 $local = Get-LocalPsdVersion -PsdFile $PsdFile -AddBeta
 $nuget = Get-PowerShellGalleryVersion $ModuleId
 $result = Compare-SemanticVersions $local $nuget
 if ($result -eq 0) {
     Write-Host "Local version $local is equal to Gallery version $nuget"
-    return
 }
 elseif ($result -eq -1) {
     Write-Host "Local version $local is older than Gallery version $nuget"
-    return
 }
 elseif ($result -eq 1) {
     Write-Host "Local version $local is newer than Gallery version $nuget"
-    return
 }
 else {
     throw "Something went wrong when comparing local $local with Gallery $nuget"
