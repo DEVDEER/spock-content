@@ -22,7 +22,11 @@ function Get-PowerShellGalleryVersion([string]$ModuleId) {
 function Get-VersionValue([string]$Version) {
     $parts = $Version.Split('-')
     $numberParts = $parts[0].Split('.')
-    $number = ([Int32]::Parse($numberParts[0]) * 1000) + ([Int32]::Parse($numberParts[1]) * 100) + [Int32]::Parse($numberParts[2])
+    $number = ([Int32]::Parse($numberParts[0]) * 10000) + ([Int32]::Parse($numberParts[1]) * 1000) + ([Int32]::Parse($numberParts[2]) * 10)
+    if ($parts.Length -gt 1) {
+        # there is a beta-tag
+        $number--
+    }
     return $number
 }
 
