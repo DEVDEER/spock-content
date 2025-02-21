@@ -1,56 +1,114 @@
 {
-  "$id": "https://devdeer.com/azcontext.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AzureContextOptions",
-  "type": "object",
-  "properties": {
-    "tenantId": {
-      "type": "string",
-      "description": "The GUID of the tenant which is holding management resources."
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://docs.devdeer.io/content/caf/overview.html",
+    "title": "AzureCafContextOptions",
+    "description": "Schema for the CAF context configuration file.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "A reference to the schema definition for this context file."
+        },
+        "tenantId": {
+            "type": "string",
+            "description": "The GUID of the tenant in Azure which is holding management resources."
+        },
+        "subscriptionId": {
+            "type": "string",
+            "description": "The GUID of a subscription which should be targeted in the current context."
+        },
+        "managementSubscriptionId": {
+            "type": "string",
+            "description": "The GUID of the subscription which is holding management resources."
+        },
+        "adminEntraGroupName": {
+            "type": "string",
+            "description": "The name of the Entra security group which represents elevated users in PIM."
+        },
+        "companyShort": {
+            "type": "string",
+            "description": "Short name or abbreviation of the company."
+        },
+        "companyName": {
+            "type": "string",
+            "description": "Full company name."
+        },
+        "isRoot": {
+            "type": "boolean",
+            "description": "Defines if this is the root .azcontext so the searcher will not search up the tree."
+        },
+        "forceContext": {
+            "type": "boolean",
+            "description": "Defines if the context will be set in any case to the tenant and subscription provided here."
+        },
+        "subscriptionsToIgnore": {
+            "type": "array",
+            "description": "An optional array of subscription ids which should be ignored by CAF scripts.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "cspServicePrincipalId": {
+            "type": "string",
+            "description": "Optional id of the CSP service principle."
+        },
+        "managementGroupsToIgnore": {
+            "type": "array",
+            "description": "List of management group IDs to ignore.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "devOpsProjects": {
+            "type": "object",
+            "description": "Collection of DevOps project configurations.",
+            "patternProperties": {
+                "^.*$": {
+                    "type": "object",
+                    "description": "Definition of a single DevOps project.",
+                    "properties": {
+                        "subscriptionId": {
+                            "type": "string",
+                            "description": "Subscription ID in Azure related to this DevOps project."
+                        },
+                        "managementGroupId": {
+                            "type": "string",
+                            "description": "Management group ID where this project subscription resides."
+                        },
+                        "ServiceConnectionScope": {
+                            "type": "string",
+                            "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
+                            "enum": [
+                                "subscription",
+                                "managementGroup"
+                            ]
+                        },
+                        "devOpsOrganizationName": {
+                            "type": "string",
+                            "description": "Name of the Azure DevOps organization."
+                        }
+                    },
+                    "required": [
+                        "subscriptionId",
+                        "managementGroupId",
+                        "ServiceConnectionScope",
+                        "devOpsOrganizationName"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        }
     },
-    "subscriptionId": {
-      "type": "string",
-      "description": "The GUID of a subscription which should be targeted in the current context."
-    },
-    "managementSubscriptionId": {
-      "type": "string",
-      "description": "The GUID of the subscription which is holding management resources."
-    },
-    "companyShort": {
-      "type": "string",
-      "description": "The shortcut representing the company part in resource names."
-    },
-    "companyName": {
-      "type": "string",
-      "description": "The name of your company."
-    },
-    "isRoot": {
-      "type": "boolean",
-      "description": "Defines if this is the root .azcontext so the searcher will not search up the tree."
-    },
-    "forceContext": {
-      "type": "boolean",
-      "description": "Defines if the context will be set in any case to the tenant and subscription provided here."
-    },
-    "adminEntraGroupName": {
-      "type": "string",
-      "description": "The name of the Entra security group which represents elevated users in PIM."
-    },
-    "cspServicePrincipalId": {
-      "type": "string",
-      "description": "Optional id of the CSP service principle."
-    },
-    "subscriptionsToIgnore": {
-      "type": "array",
-      "description": "An optional array of subscription ids which should be ignored by CAF scripts."
-    },
-    "managementGroupsToIgnore": {
-      "type": "array",
-      "description": "An optional array of management group ids which should be ignored by CAF scripts."
-    },
-    "devOpsProjects": {
-      "type": "object",
-      "description": "An object containing definitions for each DevOps project. Each key represents the project name, and each project entry specifies settings like subscriptionId, managementGroupId, serviceConnectionScope, and devOpsOrganizationName."
-    }
-  }
+    "required": [
+        "tenantId",
+        "managementSubscriptionId",
+        "adminEntraGroupName",
+        "companyShort",
+        "companyName",
+        "isRoot",
+        "forceContext",
+        "devOpsProjects"
+    ],
+    "additionalProperties": false
 }
