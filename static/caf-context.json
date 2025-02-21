@@ -48,9 +48,9 @@
       "type": "array",
       "description": "An optional array of management group ids which should be ignored by CAF scripts."
     },
-    "managementAssetsPath": {
-      "type": "string",
-      "description": "The relative path to access Bicep or Terraform resources needed for CAF-enablement."
-    }
+    "devOpsProjects": {
+      "type": "object",
+      "description": "An object containing definitions for each DevOps project. Each key represents the project name, and each project entry specifies settings like subscriptionId, managementGroupId, serviceConnectionScope, and devOpsOrganizationName."
+	  }
   }
 }
