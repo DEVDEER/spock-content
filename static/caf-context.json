@@ -51,6 +51,6 @@
     "devOpsProjects": {
       "type": "object",
       "description": "An object containing definitions for each DevOps project. Each key represents the project name, and each project entry specifies settings like subscriptionId, managementGroupId, serviceConnectionScope, and devOpsOrganizationName."
-	  }
+    }
   }
 }
