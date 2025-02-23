@@ -313,7 +313,7 @@ function CleanupApiManagementReleases() {
     Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
     Write-Host "Done"
 
-    $locks = Get-AzResourceLock -ResourceGroupName $ResourceGroup -LockName nodelete -ErrorAction SilentlyContinue
+    $locks = Get-AzResourceLock -ResourceGroupName $rgName -LockName nodelete -ErrorAction SilentlyContinue
     if ($locks.Count -gt 1) {
         throw "There are $($lock.Count) delete locks on $rgName but expected was 0 or 1."
     }
@@ -451,12 +451,10 @@ if (!$DryRun.IsPresent) {
     }
     Write-Host "Setting API Management context for API management '$resourceGroup/$apiMgmtName'... " -NoNewline
     $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
-    Write-Host "Done"
-}
-
-if (!$DryRun.IsPresent) {
+    Write-Host "Done: [$($ctx.ResourceGroupName).$($ctx.ServiceName)]"
     CleanupApiManagementReleases -ApiManagementContext $ctx
 }
+
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
