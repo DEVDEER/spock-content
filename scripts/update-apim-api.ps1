@@ -278,6 +278,85 @@ function TransformJson() {
     $copy | ConvertTo-Json -Depth 20 | Set-Content swagger.json
 }
 
+function CleanupApiManagementReleases() {
+    param (
+        [string]
+        $ApiManagementContext
+    )
+    <#
+        .SYNOPSIS
+        Removes outdated releases from API management.
+        .PARAMETER ApiManagementContext
+        The context of the API management.
+    #>
+    # get delete-lock of resource group
+    # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
+    # holding the API management. If the API Management itself has a lock or more than 1 is inherited
+    # then this logic will currently fail.
+    $rgName = $ApiManagementContext.ResourceGroupName
+    $locks = Get-AzResourceLock -ResourceGroupName $ResourceGroup -LockName nodelete -ErrorAction SilentlyContinue
+    if ($locks.Count -gt 1) {
+        throw "There are $($lock.Count) delete locks on $rgName but expected was 0 or 1."
+    }
+    if ($locks.Count -eq 1) {
+        # delete existing lock
+        $lock = $locks[0]
+        $lock | Remove-AzResourceLock -Force | Out-Null
+        while (true) {
+            # We need to wait for the lock to be removed
+            Start-Sleep 10
+            $remainingLocks = Get-AzResourceLock -ResourceGroupName $rgName -LockName nodelete -ErrorAction SilentlyContinue
+            if ($remainingLocks.Count -eq 0) {
+                break
+            }
+            Write-Host "." -NoNewline
+        }
+    }
+    Write-Host "Setting deploy lock..." -NoNewline
+    $rg = Get-AzResourceGroup -Name $rgName
+    $tags = $rg.Tags
+    $tags += @{ deployment = $apiId }
+    Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
+    Write-Host "Done"
+    Write-Host "Delete old releases..." -NoNewline
+    $removedReleases = 0
+    $totalReleases = 0
+    $apis = Get-AzApiManagementApi -Context $ApiManagementContext
+    foreach ($apiToCheck in $apis) {
+        Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..." -NoNewline
+        $currentReleases = Get-AzApiManagementApiRelease -Context $ApiManagementContext -ApiId $apiToCheck.ApiId
+        $totalReleases += $currentReleases.Count
+        $foundReleases = $currentReleases.Count
+        $tmp = 0
+        if ($foundReleases -gt $MaximumReleaseAmount) {
+            for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
+                Remove-AzApiManagementApiRelease -ApiId $apiToCheck.ApiId -Context $ApiManagementContext -ReleaseId $currentReleases[$i].ReleaseId
+                $tmp++
+                $removedReleases++
+            }
+        }
+        Write-Host "$tmp removed."
+    }
+    if ($lock) {
+        # re-apply deleted lock
+        $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
+        $lockNotes = $lock.Properties.notes
+        if ($null -eq $lockNotes -or $lockNotes.Length -eq 0) {
+            $lockNotes = 'Do not delete.'
+        }
+        New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
+    }
+    Write-Host "Done ($removedReleases of $totalReleases removed)"
+
+    Write-Host "Removing deploy lock..." -NoNewline
+    $tags = $tags.Remove('deployment')
+    if ($null -eq $tags) {
+        $tags = @{}
+    }
+    Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
+    Write-Host "Done"
+}
+
 # arrange variables and switches
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
 # switch to indicate whether to update API Management
@@ -361,6 +440,8 @@ if (!$DryRun.IsPresent) {
     $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
     Write-Host "Done"
 }
+
+CleanupApiManagementReleases -ApiManagementContext $ctx
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
@@ -477,73 +558,6 @@ foreach ($version in $versions) {
         Write-Host "Another deployment currently running. Waiting."
         Start-Sleep 2
     }
-
-    Write-Host "Setting deploy lock..." -NoNewline
-    $rg = Get-AzResourceGroup -Name $resourceGroup
-    $tags = $rg.Tags
-    $tags += @{ deployment = $apiId }
-    Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
-    Write-Host "Done"
-
-    Write-Host "Delete old releases..." -NoNewline
-    # get delete-lock of resource group
-    # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
-    # holding the API management. If the API Management itself has a lock or more than 1 is inherited
-    # then this logic will currently fail.
-    $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
-    if ($locks.Count -gt 1) {
-        throw "There are $($lock.Count) delete locks on $resourceGroup but expected was 0 or 1."
-    }
-    if ($locks.Count -eq 1) {
-        # delete existing lock
-        $lock = $locks[0]
-        $lock | Remove-AzResourceLock -Force | Out-Null
-        while (true) {
-            # We need to wait for the lock to be removed
-            Start-Sleep 10
-            $remainingLocks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
-            if ($remainingLocks.Count -eq 0) {
-                break
-            }
-            Write-Host "." -NoNewline
-        }
-    }
-    $removedReleases = 0
-    $totalReleases = 0
-    $apis = Get-AzApiManagementApi -Context $ctx
-    foreach ($apiToCheck in $apis) {
-        Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..." -NoNewline
-        $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiToCheck.ApiId
-        $totalReleases += $currentReleases.Count
-        $foundReleases = $currentReleases.Count
-        $tmp = 0
-        if ($foundReleases -gt $MaximumReleaseAmount) {
-            for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
-                Remove-AzApiManagementApiRelease -ApiId $apiToCheck.ApiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
-                $tmp++
-                $removedReleases++
-            }
-        }
-        Write-Host "$tmp removed."
-    }
-    if ($lock) {
-        # re-apply deleted lock
-        $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
-        $lockNotes = $lock.Properties.notes
-        if ($null -eq $lockNotes -or $lockNotes.Length -eq 0) {
-            $lockNotes = 'Do not delete.'
-        }
-        New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
-    }
-    Write-Host "Done ($removedReleases of $totalReleases removed)"
-
-    Write-Host "Removing deploy lock..." -NoNewline
-    $tags = $tags.Remove('deployment')
-    if ($null -eq $tags) {
-        $tags = @{}
-    }
-    Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
-    Write-Host "Done"
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
