@@ -289,7 +289,7 @@ function CleanupApiManagementReleases() {
         The context of the API management.
     #>
     # get delete-lock of resource group
-    # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
+    # This only will work appropriately if there is exactly 1 no delete lock on the resource group
     # holding the API management. If the API Management itself has a lock or more than 1 is inherited
     # then this logic will currently fail.
     $rgName = $ApiManagementContext.ResourceGroupName
@@ -303,9 +303,9 @@ function CleanupApiManagementReleases() {
             break
         }
         Write-Host "Another deployment currently running. Waiting."
-        Start-Sleep 2
+        Start-Sleep 10
     }
-    # Setup
+    # Setup deploy lease so that no other deployment can interfere
     Write-Host "Setting deploy lease..." -NoNewline
     $rg = Get-AzResourceGroup -Name $rgName
     $tags = $rg.Tags
@@ -334,6 +334,9 @@ function CleanupApiManagementReleases() {
     # Now we can delete old releases
     $removedReleases = 0
     $totalReleases = 0
+    Write-Host "Removing non-current revisions..." -NoNewline
+    Get-AzApiManagementApi -Context $ApiManagementContext | Where-Object { $_.IsCurrent -eq $false } | Remove-AzApiManagementApiRevision -Context $ApiManagementContext
+    Write-Host "Done"
     $apis = Get-AzApiManagementApi -Context $ApiManagementContext
     foreach ($apiToCheck in $apis) {
         Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..." -NoNewline
