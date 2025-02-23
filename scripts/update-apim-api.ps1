@@ -358,7 +358,7 @@ function CleanupApiManagementReleases() {
                 $removedReleases++
             }
         }
-        Write-Host "$tmp removed."
+        Write-Host "$tmp of $foundReleases removed."
     }
     if ($lock) {
         # re-apply deleted lock
