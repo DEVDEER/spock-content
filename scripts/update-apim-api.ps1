@@ -481,50 +481,58 @@ foreach ($version in $versions) {
     Write-Host "Setting deploy lock..." -NoNewline
     $rg = Get-AzResourceGroup -Name $resourceGroup
     $tags = $rg.Tags
-    $tags += @{ deployment=$apiId }
+    $tags += @{ deployment = $apiId }
     Set-AzResourceGroup -Name $resourceGroup -Tag $tags | Out-Null
     Write-Host "Done"
 
     Write-Host "Delete old releases..." -NoNewline
     $removedReleases = 0
-    $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiId
-    $foundReleases = $currentReleases.Count
-    if ($foundReleases -gt $MaximumReleaseAmount) {
-        # get delete-lock of resource group
-        # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
-        # holding the API management. If the API Management itself has a lock or more than 1 is inherited
-        # then this logic will currently fail.
-        $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
-        if ($locks.Count -gt 1) {
-            throw "There are $($lock.Count) delete locks on $resourceGroup but expected was 0 or 1."
+
+    # get delete-lock of resource group
+    # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
+    # holding the API management. If the API Management itself has a lock or more than 1 is inherited
+    # then this logic will currently fail.
+    $locks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
+    if ($locks.Count -gt 1) {
+        throw "There are $($lock.Count) delete locks on $resourceGroup but expected was 0 or 1."
+    }
+    if ($locks.Count -eq 1) {
+        # delete existing lock
+        $lock = $locks[0]
+        $lock | Remove-AzResourceLock -Force | Out-Null
+        while (true) {
+            # We need to wait for the lock to be removed
+            Start-Sleep 10
+            $remainingLocks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
+            if ($remainingLocks.Count -eq 0) {
+                break
+            }
+            Write-Host "." -NoNewline
         }
-        if ($locks.Count -eq 1) {
-            # delete existing lock
-            $lock = $locks[0]
-            $lock | Remove-AzResourceLock -Force | Out-Null
-            while (true) {
-                # We need to wait for the lock to be removed
-                Start-Sleep 10
-                $remainingLocks = Get-AzResourceLock -ResourceGroupName $resourceGroup -LockName nodelete -ErrorAction SilentlyContinue
-                if ($remainingLocks.Count -eq 0) {
-                    break
-                }
-                Write-Host "." -NoNewline
+    }
+    $apis = Get-AzApiManagementApi -Context $ctx
+    foreach ($apiToCheck in $apis) {
+        Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..."
+        $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiToCheck.ApiId
+        $foundReleases = $currentReleases.Count
+        $tmp = 0
+        if ($foundReleases -gt $MaximumReleaseAmount) {
+            for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
+                Remove-AzApiManagementApiRelease -ApiId $apiToCheck.ApiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
+                $tmp++
+                $removedReleases++
             }
         }
-        for ($i = $MaximumReleaseAmount; $i -le $foundReleases - 1; $i++) {
-            Remove-AzApiManagementApiRelease -ApiId $apiId -Context $ctx -ReleaseId $currentReleases[$i].ReleaseId
-            $removedReleases++
+        Write-Host "Removed $tmp releases from API $($apiToCheck.ApiId)."
+    }
+    if ($lock) {
+        # re-apply deleted lock
+        $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
+        $lockNotes = $lock.Properties.notes
+        if ($null -eq $lockNotes -or $lockNotes.Length -eq 0) {
+            $lockNotes = 'Do not delete.'
         }
-        if ($lock) {
-            # re-apply deleted lock
-            $scope = $lock.ResourceId.Substring(0, $lock.ResourceId.IndexOf("/providers"))
-            $lockNotes = $lock.Properties.notes
-            if ($null -eq $lockNotes -or $lockNotes.Length -eq 0)  {
-                $lockNotes = 'Do not delete.'
-            }
-            New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
-        }
+        New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
     }
     Write-Host "Done ($removedReleases of $foundReleases deleted)"
 
