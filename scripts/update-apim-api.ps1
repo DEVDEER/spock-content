@@ -280,7 +280,6 @@ function TransformJson() {
 
 function CleanupApiManagementReleases() {
     param (
-        [string]
         $ApiManagementContext
     )
     <#
@@ -312,7 +311,7 @@ function CleanupApiManagementReleases() {
     $tags += @{ deployment = $apiId }
     Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
     Write-Host "Done"
-
+    # Remove delete locks on resource group
     $locks = Get-AzResourceLock -ResourceGroupName $rgName -LockName nodelete -ErrorAction SilentlyContinue
     if ($locks.Count -gt 1) {
         throw "There are $($lock.Count) delete locks on $rgName but expected was 0 or 1."
@@ -331,7 +330,7 @@ function CleanupApiManagementReleases() {
             Write-Host "." -NoNewline
         }
     }
-
+    # Now we can delete old releases
     $removedReleases = 0
     $totalReleases = 0
     $apis = Get-AzApiManagementApi -Context $ApiManagementContext
@@ -360,7 +359,7 @@ function CleanupApiManagementReleases() {
         New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
     }
     Write-Host "Done ($removedReleases of $totalReleases removed)"
-
+    # Remove lease
     Write-Host "Removing deploy lock..." -NoNewline
     $tags = $tags.Remove('deployment')
     if ($null -eq $tags) {
