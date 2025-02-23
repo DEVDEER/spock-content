@@ -340,7 +340,7 @@ function CleanupApiManagementReleases() {
     $totalReleases = 0
     $oldRevsions = Get-AzApiManagementApi -Context $ApiManagementContext | Where-Object { $_.IsCurrent -eq $false }
     if ($oldRevsions.Count -gt 0) {
-        Write-Host "Removing $oldRevsions non-current revisions..." -NoNewline
+        Write-Host "Removing $($oldRevsions.Count) non-current revisions..." -NoNewline
         $oldRevsions | Remove-AzApiManagementApiRevision -Context $ApiManagementContext
         Write-Host "Done"
     }
