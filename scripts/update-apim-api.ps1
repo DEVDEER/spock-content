@@ -293,6 +293,7 @@ function CleanupApiManagementReleases() {
     # holding the API management. If the API Management itself has a lock or more than 1 is inherited
     # then this logic will currently fail.
     $rgName = $ApiManagementContext.ResourceGroupName
+    Write-Host "Handling outdated releases on [$rgName.$($ApiManagementContext.ServiceName)]."
     # Wait for other deployment to finish
     while ($true) {
         $rg = Get-AzResourceGroup -Name $rgName
