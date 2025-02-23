@@ -280,7 +280,9 @@ function TransformJson() {
 
 function CleanupApiManagementReleases() {
     param (
-        $ApiManagementContext
+        $ApiManagementContext,
+        [string]
+        $ApiId
     )
     <#
         .SYNOPSIS
@@ -309,7 +311,7 @@ function CleanupApiManagementReleases() {
     Write-Host "Setting deploy lease..." -NoNewline
     $rg = Get-AzResourceGroup -Name $rgName
     $tags = $rg.Tags
-    $tags += @{ deployment = $apiId }
+    $tags += @{ deployment = $ApiId }
     Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
     Write-Host "Done"
     # Remove delete locks on resource group
@@ -319,6 +321,7 @@ function CleanupApiManagementReleases() {
     }
     if ($locks.Count -eq 1) {
         # delete existing lock
+        Write-Host "Removing current no-delete-lock." -NoNewline
         $lock = $locks[0]
         $lock | Remove-AzResourceLock -Force | Out-Null
         while (true) {
@@ -326,6 +329,7 @@ function CleanupApiManagementReleases() {
             Start-Sleep 10
             $remainingLocks = Get-AzResourceLock -ResourceGroupName $rgName -LockName nodelete -ErrorAction SilentlyContinue
             if ($remainingLocks.Count -eq 0) {
+                Write-Host "Done."
                 break
             }
             Write-Host "." -NoNewline
@@ -335,7 +339,7 @@ function CleanupApiManagementReleases() {
     $removedReleases = 0
     $totalReleases = 0
     $oldRevsions = Get-AzApiManagementApi -Context $ApiManagementContext | Where-Object { $_.IsCurrent -eq $false }
-    if ($oldRevsions -gt 0) {
+    if ($oldRevsions.Count -gt 0) {
         Write-Host "Removing $oldRevsions non-current revisions..." -NoNewline
         $oldRevsions | Remove-AzApiManagementApiRevision -Context $ApiManagementContext
         Write-Host "Done"
@@ -458,17 +462,15 @@ if (!$DryRun.IsPresent) {
     Write-Host "Setting API Management context for API management '$resourceGroup/$apiMgmtName'... " -NoNewline
     $ctx = New-AzApiManagementContext -ResourceGroupName $resourceGroup -ServiceName $apiMgmtName
     Write-Host "Done: [$($ctx.ResourceGroupName).$($ctx.ServiceName)]"
-    CleanupApiManagementReleases -ApiManagementContext $ctx
+    CleanupApiManagementReleases -ApiManagementContext $ctx -ApiId "$prefix-$($TargetStage)"
 }
-
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
 foreach ($version in $versions) {
     $targetApiVersion = "v$($version.Major)"
-    $apiId = "$prefix-$($TargetStage)-v$($version.Major)"
     $swaggerFile = "$output/$($swaggerFilePattern.Replace("*", $targetApiVersion))"
-
+    $apiId = "$prefix-$($TargetStage)-v$($version.Major)"
     Write-Host "`n------------------------------------------------------------------------------"
     Write-Host "Starting handling of API version '$targetApiVersion' with assumed id '$apiId'."
     Write-Host "------------------------------------------------------------------------------`n"
