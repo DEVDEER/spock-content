@@ -294,6 +294,25 @@ function CleanupApiManagementReleases() {
     # holding the API management. If the API Management itself has a lock or more than 1 is inherited
     # then this logic will currently fail.
     $rgName = $ApiManagementContext.ResourceGroupName
+    # Wait for other deployment to finish
+    while ($true) {
+        $rg = Get-AzResourceGroup -Name $rgName
+        $tags = $rg.Tags
+        $another = ($tags | Where-Object deployment -ne $null).Count -gt 0
+        if (!$another) {
+            break
+        }
+        Write-Host "Another deployment currently running. Waiting."
+        Start-Sleep 2
+    }
+    # Setup
+    Write-Host "Setting deploy lease..." -NoNewline
+    $rg = Get-AzResourceGroup -Name $rgName
+    $tags = $rg.Tags
+    $tags += @{ deployment = $apiId }
+    Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
+    Write-Host "Done"
+
     $locks = Get-AzResourceLock -ResourceGroupName $ResourceGroup -LockName nodelete -ErrorAction SilentlyContinue
     if ($locks.Count -gt 1) {
         throw "There are $($lock.Count) delete locks on $rgName but expected was 0 or 1."
@@ -312,13 +331,7 @@ function CleanupApiManagementReleases() {
             Write-Host "." -NoNewline
         }
     }
-    Write-Host "Setting deploy lock..." -NoNewline
-    $rg = Get-AzResourceGroup -Name $rgName
-    $tags = $rg.Tags
-    $tags += @{ deployment = $apiId }
-    Set-AzResourceGroup -Name $rgName -Tag $tags | Out-Null
-    Write-Host "Done"
-    Write-Host "Delete old releases..." -NoNewline
+
     $removedReleases = 0
     $totalReleases = 0
     $apis = Get-AzApiManagementApi -Context $ApiManagementContext
@@ -441,7 +454,9 @@ if (!$DryRun.IsPresent) {
     Write-Host "Done"
 }
 
-CleanupApiManagementReleases -ApiManagementContext $ctx
+if (!$DryRun.IsPresent) {
+    CleanupApiManagementReleases -ApiManagementContext $ctx
+}
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
@@ -547,17 +562,6 @@ foreach ($version in $versions) {
         -ApiId $apiId `
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
-
-    while ($true) {
-        $rg = Get-AzResourceGroup -Name $resourceGroup
-        $tags = $rg.Tags
-        $another = ($tags | Where-Object deployment -ne $null).Count -gt 0
-        if (!$another) {
-            break
-        }
-        Write-Host "Another deployment currently running. Waiting."
-        Start-Sleep 2
-    }
 
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
