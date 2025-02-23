@@ -486,8 +486,6 @@ foreach ($version in $versions) {
     Write-Host "Done"
 
     Write-Host "Delete old releases..." -NoNewline
-    $removedReleases = 0
-
     # get delete-lock of resource group
     # This only will work appropriately if there is exactly 1 nodelete lock on the resource group
     # holding the API management. If the API Management itself has a lock or more than 1 is inherited
@@ -510,10 +508,13 @@ foreach ($version in $versions) {
             Write-Host "." -NoNewline
         }
     }
+    $removedReleases = 0
+    $totalReleases = 0
     $apis = Get-AzApiManagementApi -Context $ctx
     foreach ($apiToCheck in $apis) {
-        Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..."
+        Write-Host "Checking API $($apiToCheck.ApiId) for outdated releases..." -NoNewline
         $currentReleases = Get-AzApiManagementApiRelease -Context $ctx -ApiId $apiToCheck.ApiId
+        $totalReleases += $currentReleases.Count
         $foundReleases = $currentReleases.Count
         $tmp = 0
         if ($foundReleases -gt $MaximumReleaseAmount) {
@@ -523,7 +524,7 @@ foreach ($version in $versions) {
                 $removedReleases++
             }
         }
-        Write-Host "Removed $tmp releases from API $($apiToCheck.ApiId)."
+        Write-Host "$tmp removed."
     }
     if ($lock) {
         # re-apply deleted lock
@@ -534,7 +535,7 @@ foreach ($version in $versions) {
         }
         New-AzResourceLock -LockName nodelete -Scope $scope -LockNotes $lockNotes -LockLevel $lock.Properties.Level -Force | Out-Null
     }
-    Write-Host "Done ($removedReleases of $foundReleases deleted)"
+    Write-Host "Done ($removedReleases of $totalReleases removed)"
 
     Write-Host "Removing deploy lock..." -NoNewline
     $tags = $tags.Remove('deployment')
