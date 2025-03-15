@@ -17,6 +17,10 @@
             "type": "string",
             "description": "The GUID of a subscription which should be targeted in the current context."
         },
+        "managementGroupId": {
+            "type": "string",
+            "description": "The ID of a management group which should be targeted in the current context."
+        },
         "managementSubscriptionId": {
             "type": "string",
             "description": "The GUID of the subscription which is holding management resources."
