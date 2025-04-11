@@ -22,7 +22,7 @@ if ($Prerelease.IsPresent) {
         -AllowPrereleaseVersions `
         -Source nuget.org `
         -ProviderName nuget `
-        -Destination $PSScriptRoot `
+        -Destination $root `
         -Force
 } else {
     $version = (Find-Package -Filter devdeer -ProviderName nuget | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
@@ -31,7 +31,7 @@ if ($Prerelease.IsPresent) {
         -RequiredVersion $version `
         -Source nuget.org `
         -ProviderName nuget `
-        -Destination $PSScriptRoot `
+        -Destination $root `
         -Force
 }
 
