@@ -10,20 +10,31 @@ if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
 }
 $root = $PSScriptRoot.Contains(' ') ? '.' : $PSScriptRoot
 
+$provider = Get-PackageSource -Name nuget.org
+if ($null -eq $provider) {
+    Register-PackageSource -Name nuget.org -Location https://www.nuget.org/api/v3 -ProviderName nuget.org
+}
 if ($Prerelease.IsPresent) {
-    Install-Package -Name "devdeer.Templates.Bicep"  `
-        -Scope CurrentUser `
+    $version = (Find-Package -Filter devdeer -ProviderName nuget -AllowPrereleaseVersions | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
+    Install-Package -Scope CurrentUser `
+        -Name "devdeer.Templates.Bicep" `
+        -RequiredVersion $version `
+        -AllowPrereleaseVersions `
+        -Source nuget.org `
         -ProviderName nuget `
         -Destination $PSScriptRoot `
-        -Force `
-        -AllowPrereleaseVersions
+        -Force
 } else {
-    Install-Package -Name "devdeer.Templates.Bicep"  `
-        -Scope CurrentUser `
+    $version = (Find-Package -Filter devdeer -ProviderName nuget | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
+    Install-Package -Scope CurrentUser `
+        -Name "devdeer.Templates.Bicep" `
+        -RequiredVersion $version `
+        -Source nuget.org `
         -ProviderName nuget `
         -Destination $PSScriptRoot `
         -Force
 }
+
 
 $folders = @('modules', 'components', 'constants', 'functions', 'types')
 
