@@ -16,7 +16,7 @@ if ($null -eq $provider) {
 }
 if ($Prerelease.IsPresent) {
     $version = (Find-Package -Filter devdeer -ProviderName nuget -AllowPrereleaseVersions | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
-    Install-Package -Scope CurrentUser `
+    $tmp = Install-Package -Scope CurrentUser `
         -Name "devdeer.Templates.Bicep" `
         -RequiredVersion $version `
         -AllowPrereleaseVersions `
@@ -26,7 +26,7 @@ if ($Prerelease.IsPresent) {
         -Force | Out-Null
 } else {
     $version = (Find-Package -Filter devdeer -ProviderName nuget | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
-    Install-Package -Scope CurrentUser `
+    $tmp = Install-Package -Scope CurrentUser `
         -Name "devdeer.Templates.Bicep" `
         -RequiredVersion $version `
         -Source nuget.org `
