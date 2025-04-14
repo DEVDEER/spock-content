@@ -9,30 +9,35 @@ if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
     throw "This script needs to be executed from inside its folder because white spaces where detected."
 }
 $root = $PSScriptRoot.Contains(' ') ? '.' : $PSScriptRoot
-# check if nuget feed is registered as package source
-$provider = Get-PsResourceRepository -Name nuget.org -ErrorAction SilentlyContinue
+
+$provider = Get-PackageSource -Name nuget.org
 if ($null -eq $provider) {
-    Register-PSResourceRepository -Name nuget.org -Uri https://api.nuget.org/v3/index.json `
-        -Trusted `
-        -Force
+    Register-PackageSource -Name nuget.org -Location https://www.nuget.org/api/v3 -ProviderName nuget.org
 }
 if ($Prerelease.IsPresent) {
-    $version = Find-PSResource -Name devdeer.Templates.Bicep -Repository nuget.org -Prerelease | Where-Object { $_.Name -eq 'devdeer.Templates.Bicep' }
-    # Combine the version with the prerelease tag
-    $version = $version.Version.ToString() + '-' + $version.Prerelease.ToString()
-    Write-Host "Downloading prerelease version: $version"
+    $version = (Find-Package -Filter devdeer -ProviderName nuget -AllowPrereleaseVersions | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
+    $tmp = Install-Package -Scope CurrentUser `
+        -Name "devdeer.Templates.Bicep" `
+        -RequiredVersion $version `
+        -AllowPrereleaseVersions `
+        -Source nuget.org `
+        -ProviderName nuget `
+        -Destination $root `
+        -Force | Out-Null
+} else {
+    $version = (Find-Package -Filter devdeer -ProviderName nuget | Where { $_.Name -eq 'devdeer.Templates.Bicep' }).Version
+    $tmp = Install-Package -Scope CurrentUser `
+        -Name "devdeer.Templates.Bicep" `
+        -RequiredVersion $version `
+        -Source nuget.org `
+        -ProviderName nuget `
+        -Destination $root `
+        -Force  | Out-Null
 }
-else {
-    $version = (Find-PSResource -Name devdeer.Templates.Bicep -Repository nuget.org | Where-Object { $_.Name -eq 'devdeer.Templates.Bicep' }).Version.ToString()
-    Write-Host "Downloading version: $version"
-}
-# download the modules and components
-Save-PSResource -Name "devdeer.Templates.Bicep" `
-    -Version $version `
-    -Repository nuget.org `
-    -Path $PSScriptRoot `
-    -TrustRepository
+
+
 $folders = @('modules', 'components', 'constants', 'functions', 'types')
+
 foreach ($folder in $folders) {
     # remove existing modules and components
     if (Test-Path -Path "$root/$folder") {
@@ -42,7 +47,7 @@ foreach ($folder in $folders) {
     Move-Item "$root/devdeer.Templates.Bicep*/$folder" $root -Force
 }
 Move-Item "$root/devdeer.Templates.Bicep*/assets/install-modules.ps1" $root -Force
-if (!(Test-Path -Path "$root/.gitignore")) {
+if (!(Test-Path -Path "$root/.gitgnore")) {
     Move-Item "$root/devdeer.Templates.Bicep*/assets/.gitignore" $root -Force
 }
 if (!(Test-Path -Path "$root/bicepSettings.json")) {
