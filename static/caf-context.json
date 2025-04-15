@@ -63,44 +63,127 @@
                 "type": "string"
             }
         },
-        "devOpsProjects": {
+        "azureDevOps": {
             "type": "object",
-            "description": "Collection of DevOps project configurations.",
-            "patternProperties": {
-                "^.*$": {
+            "description": "Configuration for Azure DevOps environment.",
+            "properties": {
+                "defaultOrganizationName": {
+                    "type": "string",
+                    "description": "Default organization name for Azure DevOps projects."
+                },
+                "projects": {
                     "type": "object",
-                    "description": "Definition of a single DevOps project.",
-                    "properties": {
-                        "subscriptionId": {
-                            "type": "string",
-                            "description": "Subscription ID in Azure related to this DevOps project."
-                        },
-                        "managementGroupId": {
-                            "type": "string",
-                            "description": "Management group ID where this project subscription resides."
-                        },
-                        "ServiceConnectionScope": {
-                            "type": "string",
-                            "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
-                            "enum": [
-                                "subscription",
-                                "managementGroup"
-                            ]
-                        },
-                        "devOpsOrganizationName": {
-                            "type": "string",
-                            "description": "Name of the Azure DevOps organization."
+                    "description": "Collection of DevOps projects configurations.",
+                    "patternProperties": {
+                        "^.*$": {
+                            "type": "array",
+                            "description": "Array of service connection configurations for the DevOps project.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "subscriptionId": {
+                                        "type": "string",
+                                        "description": "Subscription ID in Azure related to this service connection."
+                                    },
+                                    "managementGroupId": {
+                                        "type": "string",
+                                        "description": "Management group ID where this subscription resides."
+                                    },
+                                    "ServiceConnectionScope": {
+                                        "type": "string",
+                                        "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
+                                        "enum": [
+                                            "subscription",
+                                            "managementGroup"
+                                        ]
+                                    },
+                                    "organizationName": {
+                                        "type": "string",
+                                        "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
+                                    }
+                                },
+                                "required": [
+                                    "subscriptionId",
+                                    "managementGroupId",
+                                    "ServiceConnectionScope"
+                                ],
+                                "additionalProperties": false
+                            }
                         }
                     },
-                    "required": [
-                        "subscriptionId",
-                        "managementGroupId",
-                        "ServiceConnectionScope",
-                        "devOpsOrganizationName"
-                    ],
                     "additionalProperties": false
                 }
             },
+            "required": [
+                "defaultOrganizationName",
+                "projects"
+            ],
+            "additionalProperties": false
+        },
+        "azureBudgets": {
+            "type": "object",
+            "description": "Configuration for Azure budget settings.",
+            "properties": {
+                "defaultActionGroupResourceId": {
+                    "type": "string",
+                    "description": "Resource ID for the default action group to notify when budget thresholds are exceeded."
+                },
+                "subscriptions": {
+                    "type": "object",
+                    "description": "Budget configurations for various subscriptions.",
+                    "patternProperties": {
+                        "^.*$": {
+                            "type": "array",
+                            "description": "Array of budget configurations for the subscription.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "timeGrain": {
+                                        "type": "string",
+                                        "description": "Time grain for the budget (e.g., 'Monthly', 'Quarterly', etc.).",
+                                        "enum": [
+                                            "Monthly",
+                                            "Quarterly",
+                                            "Annually"
+                                        ]
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "Budget amount."
+                                    },
+                                    "thresholdRules": {
+                                        "type": "array",
+                                        "description": "Array of threshold percentages for budget alerts.",
+                                        "items": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "thresholdType": {
+                                        "type": "string",
+                                        "description": "Type of threshold calculation (e.g., 'Forecasted', 'Actual').",
+                                        "enum": [
+                                            "Forecasted",
+                                            "Actual"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "timeGrain",
+                                    "amount",
+                                    "thresholdRules",
+                                    "thresholdType"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "defaultActionGroupResourceId",
+                "subscriptions"
+            ],
             "additionalProperties": false
         }
     },
@@ -111,8 +194,7 @@
         "companyShort",
         "companyName",
         "isRoot",
-        "forceContext",
-        "devOpsProjects"
+        "forceContext"
     ],
     "additionalProperties": false
 }
