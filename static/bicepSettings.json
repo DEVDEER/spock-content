@@ -17,11 +17,11 @@
             "type": "string",
             "description": "The name of the central Log Analytics workspace."
         },
-       "managementResourceGroupName": {
+        "managementResourceGroupName": {
             "type": "string",
             "description": "The resource group of the CAF management LZ which should contain the central Log Analytics workspace."
         },
-       "defaultActionGroupName": {
+        "defaultActionGroupName": {
             "type": "string",
             "description": "The name of the central action group that is configured in Azure Monitor and should be used for all alarms."
         },
@@ -33,16 +33,17 @@
             "type": "string",
             "description": "The default prefix which should identify your company and should be 2-3 characters in order not to waste chars for resource names."
         },
-       "namingConventions": {
+        "namingConventions": {
             "type": "object",
             "description": "Optional definition for overrides of naming conventions.",
-          "properties": {
-            "separator": {
-                "type": "string",
-                "description": "The seperator character to use in resource names if needed."
-            },
-            "*": {
-              "type": "object"
+            "properties": {
+                "separator": {
+                    "type": "string",
+                    "description": "The seperator character to use in resource names if needed."
+                },
+                "*": {
+                    "type": "object"
+                }
             }
         }
     }
