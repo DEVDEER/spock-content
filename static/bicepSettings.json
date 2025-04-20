@@ -34,15 +34,15 @@
             "description": "The default prefix which should identify your company and should be 2-3 characters in order not to waste chars for resource names."
         },
         "namingConventions": {
-            "type": "object",
+            "type": [ "object", "null" ]
             "description": "Optional definition for overrides of naming conventions.",
             "properties": {
                 "separator": {
                     "type": "string",
                     "description": "The seperator character to use in resource names if needed."
                 },
-                "*": {
-                    "type": "object"
+                "*": {                                            
+                    "type": [ "object" ]                                    
                 }
             }
         }
