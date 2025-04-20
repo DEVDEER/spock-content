@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://docs.devdeer.io/content/caf/overview.html",
+    "title": "AzureCafContextOptions",
+    "description": "Schema for the CAF context configuration file.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "A reference to the schema definition for this context file."
+        },
+        "managementSubscriptionId": {
+            "type": "string",
+            "description": "The subscription if of the CAF management landing zone."
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "description": "The name of the central Log Analytics workspace."
+        },
+       "managementResourceGroupName": {
+            "type": "string",
+            "description": "The resource group of the CAF management LZ which should contain the central Log Analytics workspace."
+        },
+       "defaultActionGroupName": {
+            "type": "string",
+            "description": "The name of the central action group that is configured in Azure Monitor and should be used for all alarms."
+        },
+        "defaultDiagnosticName": {
+            "type": "string",
+            "description": "The name the deploymewnts of diagnostic settings in resources should have by default."
+        },
+        "prefix": {
+            "type": "string",
+            "description": "The default prefix which should identify your company and should be 2-3 characters in order not to waste chars for resource names."
+        },
+       "namingConventions": {
+            "type": "object",
+            "description": "Optional definition for overrides of naming conventions.",
+          "properties": {
+            "separator": {
+                "type": "string",
+                "description": "The seperator character to use in resource names if needed."
+            },
+            "*": {
+              "type": "object"
+            }
+        },
+    }
+}
