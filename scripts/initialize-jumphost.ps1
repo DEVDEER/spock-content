@@ -52,6 +52,19 @@ function Install-PowerShellModule {
         Log "FAIL: PowerShell module $moduleName - $_"
     }
 }
+Install-PSResourceGet
+# PowerShell modules to install
+$modules = @(
+    "Az.Accounts",
+    "Az.Resources",
+    "Az.Network",
+    "Microsoft.Graph",
+    "Devdeer.Caf",
+    "Microsoft.WinGet.Client"	
+)
+foreach ($mod in $modules) {
+    Install-PowerShellModule -moduleName $mod
+}
 # Check if winget is available
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Log "ERROR: Winget is not installed. Cannot proceed with tool installs."
@@ -74,17 +87,5 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     foreach ($pkg in $wingetPackages) {
         Install-WingetPackage -packageId $pkg
     }
-}
-Install-PSResourceGet
-# PowerShell modules to install
-$modules = @(
-    "Az.Accounts",
-    "Az.Resources",
-    "Az.Network",
-    "Microsoft.Graph",
-    "Devdeer.Caf"
-)
-foreach ($mod in $modules) {
-    Install-PowerShellModule -moduleName $mod
 }
 Log "----- DONE -----"
