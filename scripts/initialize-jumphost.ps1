@@ -36,7 +36,6 @@ function Install-PSResourceGet {
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
             Log "PSResourceGet already available"
         }
-
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
             throw "Install-PSResource still not found after install. Something went wrong."
         }
@@ -68,7 +67,7 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         "Google.Chrome",
         "Mozilla.Firefox",
         "Insecure.Nmap",
-        "PortSwigger.BurpSuite.Community",  # <-- Fixed trailing space
+        "PortSwigger.BurpSuite.Community",
         "Microsoft.WSL"
     )
 
@@ -76,7 +75,7 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Install-WingetPackage -packageId $pkg
     }
 }
-Ensure-PSResourceGet
+Install-PSResourceGet
 # PowerShell modules to install
 $modules = @(
     "Az.Accounts",
