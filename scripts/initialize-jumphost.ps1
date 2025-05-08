@@ -16,7 +16,7 @@ if (-not ([Security.Principal.WindowsPrincipal] `
 function Install-WingetPackage {
     param([string]$packageId)
     try {
-        winget install --id $packageId --silent --accept-source-agreements --accept-package-agreements -e
+        winget install --id $packageId --accept-source-agreements --accept-package-agreements -e
         Log "SUCCESS: Installed $packageId"
     } catch {
         Log "FAIL: $packageId - $_"
@@ -46,7 +46,7 @@ function Install-PSResourceGet {
 function Install-PowerShellModule {
     param([string]$moduleName)
     try {
-        Install-PSResource -Name $moduleName -Scope CurrentUser -Force -ErrorAction Stop
+        Install-PSResource -Name $moduleName -Scope CurrentUser -TrustRepository -Reinstall -ErrorAction Stop
         Log "SUCCESS: Installed PowerShell module $moduleName"
     } catch {
         Log "FAIL: PowerShell module $moduleName - $_"
