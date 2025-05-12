@@ -1,5 +1,6 @@
 $logFile = "$PSScriptRoot\install_log.txt"
 $ErrorActionPreference = "Continue"
+# Functin to write to log txt file
 function Log {
     param($message)
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -13,16 +14,33 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     Write-Host "This script must be run as Administrator." -ForegroundColor Red
     exit 1
 }
-function Install-WingetPackage {
+# Install Chocolatey
+function Install-Chocolatey {
+    try {
+        if (-not (Get-Command choco.exe -ErrorAction SilentlyContinue)) {
+            Log "Chocolatey not found. Installing..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            Log "SUCCESS: Installed Chocolatey"
+        } else {
+            Log "Chocolatey already available"
+        }
+    } catch {
+        Log "FAIL: Installing Chocolatey - $_"
+    }
+}
+# function to install the choco package
+function Install-ChocoPackage {
     param([string]$packageId)
     try {
-        winget install --id $packageId --accept-source-agreements --accept-package-agreements -e
+        choco install $packageId -y --no-progress
         Log "SUCCESS: Installed $packageId"
     } catch {
         Log "FAIL: $packageId - $_"
     }
 }
-# Ensure PSResourceGet is installed and usable
+# Install PSResourceGet if missing
 function Install-PSResourceGet {
     try {
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
@@ -30,7 +48,6 @@ function Install-PSResourceGet {
             Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -ErrorAction Stop
             Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
             Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AllowClobber -Scope AllUsers -ErrorAction Stop
-            Get-InstalledModule
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
             Log "SUCCESS: Installed PSResourceGet"
         } else {
@@ -44,6 +61,7 @@ function Install-PSResourceGet {
         Log "FAIL: Installing PSResourceGet - $_"
     }
 }
+# Function to install powershell modules
 function Install-PowerShellModule {
     param([string]$moduleName)
     try {
@@ -53,40 +71,39 @@ function Install-PowerShellModule {
         Log "FAIL: PowerShell module $moduleName - $_"
     }
 }
+# Run setup
+Install-Chocolatey
 Install-PSResourceGet
+
 # PowerShell modules to install
 $modules = @(
     "Az.Accounts",
     "Az.Resources",
     "Az.Network",
     "Microsoft.Graph",
-    "Devdeer.Caf",
-    "Microsoft.WinGet.Client"	
+    "Devdeer.Caf"
 )
+# Install powershell modules
 foreach ($mod in $modules) {
     Install-PowerShellModule -moduleName $mod
 }
-# Check if winget is available
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Log "ERROR: Winget is not installed. Cannot proceed with tool installs."
-} else {
-    $wingetPackages = @(
-        "Microsoft.VisualStudioCode",
-        "Postman.Postman",
-        "Git.Git",
-        "7zip.7zip",
-        "PowerShell.PowerShell",
-        "Microsoft.SQLServerManagementStudio",
-        "Microsoft.AzureCLI",
-        "Google.Chrome",
-        "Mozilla.Firefox",
-        "Insecure.Nmap",
-        "PortSwigger.BurpSuite.Community",
-        "Microsoft.WSL"
-    )
-
-    foreach ($pkg in $wingetPackages) {
-        Install-WingetPackage -packageId $pkg
-    }
+# Choco packages to install (mapped equivalents)
+$chocoPackages = @(
+    "vscode",
+    "postman",
+    "git",
+    "7zip",
+    "powershell-core",
+    "sql-server-management-studio",
+    "azure-cli",
+    "googlechrome",
+    "firefox",
+    "nmap",
+    "burpsuite",
+    "wsl"
+)
+# Install choco packages
+foreach ($pkg in $chocoPackages) {
+    Install-ChocoPackage -packageId $pkg
 }
 Log "----- DONE -----"
