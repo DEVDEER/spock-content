@@ -29,7 +29,8 @@ function Install-PSResourceGet {
             Log "PSResourceGet not found. Installing..."
             Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -ErrorAction Stop
             Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
-            Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
+            Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AllowClobber -Scope AllUsers -ErrorAction Stop
+            Get-InstalledModule
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
             Log "SUCCESS: Installed PSResourceGet"
         } else {
