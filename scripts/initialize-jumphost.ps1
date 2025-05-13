@@ -1,4 +1,4 @@
-$logFile = "$PSScriptRoot\install_log.txt"
+$logFile = "C:\install_log.txt"
 $ErrorActionPreference = "Continue"
 # Functin to write to log txt file
 function Log {
@@ -45,7 +45,7 @@ function Install-PSResourceGet {
     try {
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
             Log "PSResourceGet not found. Installing..."
-            Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -ErrorAction Stop
+            Install-PackageProvider -Name NuGet -Force -Scope AllUsers -ErrorAction Stop
             Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
             Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AllowClobber -Scope AllUsers -ErrorAction Stop
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
@@ -65,7 +65,7 @@ function Install-PSResourceGet {
 function Install-PowerShellModule {
     param([string]$moduleName)
     try {
-        Install-PSResource -Name $moduleName -Scope CurrentUser -TrustRepository -Reinstall -ErrorAction Stop
+        Install-PSResource -Name $moduleName -Scope AllUsers -TrustRepository -Reinstall -ErrorAction Stop
         Log "SUCCESS: Installed PowerShell module $moduleName"
     } catch {
         Log "FAIL: PowerShell module $moduleName - $_"
