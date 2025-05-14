@@ -8,8 +8,8 @@ function Log {
 }
 # Ensure script is running as Administrator
 if (-not ([Security.Principal.WindowsPrincipal] `
-    [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
-    [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+            [Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Log "ERROR: This script must be run as Administrator."
     Write-Host "This script must be run as Administrator." -ForegroundColor Red
     exit 1
@@ -23,10 +23,12 @@ function Install-Chocolatey {
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
             iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
             Log "SUCCESS: Installed Chocolatey"
-        } else {
+        }
+        else {
             Log "Chocolatey already available"
         }
-    } catch {
+    }
+    catch {
         Log "FAIL: Installing Chocolatey - $_"
     }
 }
@@ -36,7 +38,8 @@ function Install-ChocoPackage {
     try {
         choco install $packageId -y --no-progress
         Log "SUCCESS: Installed $packageId"
-    } catch {
+    }
+    catch {
         Log "FAIL: $packageId - $_"
     }
 }
@@ -50,14 +53,16 @@ function Install-PSResourceGet {
             Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AllowClobber -Scope AllUsers -ErrorAction Stop
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
             Log "SUCCESS: Installed PSResourceGet"
-        } else {
+        }
+        else {
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
             Log "PSResourceGet already available"
         }
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
             throw "Install-PSResource still not found after install. Something went wrong."
         }
-    } catch {
+    }
+    catch {
         Log "FAIL: Installing PSResourceGet - $_"
     }
 }
@@ -67,14 +72,14 @@ function Install-PowerShellModule {
     try {
         Install-PSResource -Name $moduleName -Scope AllUsers -TrustRepository -Reinstall -ErrorAction Stop
         Log "SUCCESS: Installed PowerShell module $moduleName"
-    } catch {
+    }
+    catch {
         Log "FAIL: PowerShell module $moduleName - $_"
     }
 }
 # Run setup
 Install-Chocolatey
 Install-PSResourceGet
-
 # PowerShell modules to install
 $modules = @(
     "Az.Accounts",
