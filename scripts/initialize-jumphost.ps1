@@ -103,7 +103,6 @@ $chocoPackages = @(
     "azure-cli",
     "googlechrome",
     "firefox",
-    "nmap",
     "burpsuite",
     "wsl"
 )
