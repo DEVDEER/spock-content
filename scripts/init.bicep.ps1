@@ -36,6 +36,10 @@ Invoke-WebRequest -Uri $downloadUrl -OutFile $packageNuget
 Expand-Archive $packageNuget tmp
 Remove-Item $packageNuget
 Write-Host "Downloaded version $version of devdeer.Template.Bicep."
+Write-Host "ls"
+ls
+Write-Host "ls tmp"
+ls tmp
 # move file assets from package out
 if (!(Test-Path -Path "bicepSettings.json")) {
     Move-Item "$root/tmp/assets/bicepSettings.json" $root -Force
