@@ -10,11 +10,7 @@ param (
     $PreRelease
 )
 
-if ($PSScriptRoot.Contains(' ') -and $PSScriptRoot -ne $PWD) {
-    throw "This script needs to be executed from inside its folder because white spaces where detected."
-}
-$root = $PSScriptRoot.Contains(' ') ? '.' : $PSScriptRoot
-
+$root = "."
 $package = 'devdeer.templates.bicep'
 $versionUrl = "https://api.nuget.org/v3-flatcontainer/$($package.ToLower())/index.json"
 $result = Invoke-WebRequest -Uri $versionUrl
@@ -36,7 +32,6 @@ Invoke-WebRequest -Uri $downloadUrl -OutFile $packageNuget
 Expand-Archive $packageNuget tmp
 Remove-Item $packageNuget
 Write-Host "Downloaded version $version of devdeer.Template.Bicep."
-ls tmp/assets
 # move file assets from package out
 if (!(Test-Path -Path "bicepSettings.json")) {
     Move-Item "$root/tmp/assets/bicepSettings.json" $root -Force
