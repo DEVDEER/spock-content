@@ -35,6 +35,7 @@ $downloadUrl = "https://api.nuget.org/v3-flatcontainer/$($package.ToLower())/$($
 Invoke-WebRequest -Uri $downloadUrl -OutFile $packageNuget
 Expand-Archive $packageNuget tmp
 Remove-Item $packageNuget
+Write-Host "Downloaded version $version of devdeer.Template.Bicep."
 $folders = @( 'components', 'constants', 'functions', 'modules', 'types' )
 if (!(Test-Path -Path "bicepSettings.json")) {
     Move-Item "$root/tmp/assets/bicepSettings.json" $root -Force
@@ -50,6 +51,5 @@ foreach($folder in $folders) {
 }
 Remove-Item -Force -Recurse $root/tmp
 Write-Host "Using version $version of devdeer.Template.Bicep now"
-
 # download the scripts and content from GitHub
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/build.bicep.ps1" -OutFile "$root/build.ps1"
