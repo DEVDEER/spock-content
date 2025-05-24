@@ -42,7 +42,7 @@ if (!(Test-Path -Path ".gitignore")) {
 # move folders from packages out
 $folders = @( 'components', 'constants', 'functions', 'modules', 'types' )
 foreach($folder in $folders) {
-    if (Test-Path $folder) {
+    if (Test-Path "$root/$folder") {
         Remove-Item -Force -Recurse $folder
     }
     Move-Item -Force "$root/tmp/$folder" $root
@@ -52,4 +52,4 @@ Remove-Item -Force -Recurse $root/tmp
 Write-Host "Using version $version of devdeer.Template.Bicep now"
 # download the scripts and content from GitHub
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/build.bicep.ps1" -OutFile "$root/build.ps1"
-ls $root/types
+ls "$root/types"
