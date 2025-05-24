@@ -36,19 +36,22 @@ Invoke-WebRequest -Uri $downloadUrl -OutFile $packageNuget
 Expand-Archive $packageNuget tmp
 Remove-Item $packageNuget
 Write-Host "Downloaded version $version of devdeer.Template.Bicep."
-$folders = @( 'components', 'constants', 'functions', 'modules', 'types' )
+# move file assets from package out
 if (!(Test-Path -Path "bicepSettings.json")) {
     Move-Item "$root/tmp/assets/bicepSettings.json" $root -Force
 }
 if (!(Test-Path -Path ".gitignore")) {
     Move-Item "$root/tmp/assets/.gitignore" $root -Force
 }
+# move folders from packages out
+$folders = @( 'components', 'constants', 'functions', 'modules', 'types' )
 foreach($folder in $folders) {
     if (Test-Path $folder) {
         Remove-Item -Force -Recurse $folder
     }
     Move-Item -Force "$root/tmp/$folder" $root
 }
+# cleanup
 Remove-Item -Force -Recurse $root/tmp
 Write-Host "Using version $version of devdeer.Template.Bicep now"
 # download the scripts and content from GitHub
