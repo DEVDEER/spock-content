@@ -52,4 +52,4 @@ Remove-Item -Force -Recurse $root/tmp
 Write-Host "Using version $version of devdeer.Template.Bicep now"
 # download the scripts and content from GitHub
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DEVDEER/spock-content/main/scripts/build.bicep.ps1" -OutFile "$root/build.ps1"
-ls $root
+ls $root/types
