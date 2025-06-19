@@ -104,7 +104,8 @@ $chocoPackages = @(
     "googlechrome",
     "firefox",
     "burpsuite",
-    "wsl"
+    "wsl",
+    "nmap"
 )
 # Install choco packages
 foreach ($pkg in $chocoPackages) {
