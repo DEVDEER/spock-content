@@ -71,7 +71,7 @@ param (
     [string]
     $OutputDirectory,
     [Parameter(Mandatory = $false)]
-    $MaximumReleaseAmount = 3,
+    $MaximumReleaseAmount = 1,
     [Switch]
     $UseExistingSwaggerFiles,
     [Parameter(Mandatory = $false)]
