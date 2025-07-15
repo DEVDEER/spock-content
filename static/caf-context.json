@@ -89,7 +89,7 @@
                                         "type": "string",
                                         "description": "Management group ID where this subscription resides."
                                     },
-                                    "ServiceConnectionScope": {
+                                    "serviceConnectionScope": {
                                         "type": "string",
                                         "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
                                         "enum": [
@@ -105,7 +105,7 @@
                                 "required": [
                                     "subscriptionId",
                                     "managementGroupId",
-                                    "ServiceConnectionScope"
+                                    "serviceConnectionScope"
                                 ],
                                 "additionalProperties": false
                             }
