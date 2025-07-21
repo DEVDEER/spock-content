@@ -328,12 +328,12 @@ function CleanupApiManagementReleases() {
             # We need to wait for the lock to be removed
             Start-Sleep 10
             $remainingLocks = Get-AzResourceLock -ResourceGroupName $rgName -LockName nodelete -ErrorAction SilentlyContinue
-            if ($remainingLocks.Count -eq 0) {
-                Write-Host "Done."
+            if ($remainingLocks.Count -eq 0) {                
                 break
             }
             Write-Host "." -NoNewline
         }
+        Write-Host "Done."
     }
     # Now we can delete old releases
     $removedReleases = 0
