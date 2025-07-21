@@ -321,7 +321,7 @@ function CleanupApiManagementReleases() {
     }
     if ($locks.Count -eq 1) {
         # delete existing lock
-        Write-Host "Removing current no-delete-lock." -NoNewline
+        Write-Host "Removing current no-delete-lock..." -NoNewline
         $lock = $locks[0]
         $lock | Remove-AzResourceLock -Force | Out-Null
         while (true) {
@@ -333,7 +333,7 @@ function CleanupApiManagementReleases() {
             }
             Write-Host "." -NoNewline
         }
-        Write-Host "Done."
+        Write-Host "Done"
     }
     # Now we can delete old releases
     $removedReleases = 0
