@@ -72,46 +72,44 @@
                     "description": "Default organization name for Azure DevOps projects."
                 },
                 "projects": {
-                    "type": "object",
-                    "description": "Collection of DevOps projects configurations.",
-                    "patternProperties": {
-                        "^.*$": {
-                            "type": "object",
-                            "description": "Keyed list of service connection configurations for the DevOps projects.",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "subscriptionId": {
-                                        "type": "string",
-                                        "description": "Subscription ID in Azure related to this service connection."
-                                    },
-                                    "managementGroupId": {
-                                        "type": "string",
-                                        "description": "Management group ID where this subscription resides."
-                                    },
-                                    "serviceConnectionScope": {
-                                        "type": "string",
-                                        "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
-                                        "enum": [
-                                            "subscription",
-                                            "managementGroup"
-                                        ]
-                                    },
-                                    "organizationName": {
-                                        "type": "string",
-                                        "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
-                                    }
-                                },
-                                "required": [
-                                    "subscriptionId",
-                                    "managementGroupId",
-                                    "serviceConnectionScope"
-                                ],
-                                "additionalProperties": false
+                    "type": "array",
+                    "description": "Array of DevOps project service connection configurations.",
+                    "items": {
+                        "type": "object",
+                        "description": "A single project/service-connection configuration.",
+                        "properties": {
+                            "projectName": {
+                                "type": "string",
+                                "description": "Optional name/key for the project entry."
+                            },
+                            "subscriptionId": {
+                                "type": "string",
+                                "description": "Subscription ID in Azure related to this service connection."
+                            },
+                            "managementGroupId": {
+                                "type": "string",
+                                "description": "Management group ID where this subscription resides."
+                            },
+                            "serviceConnectionScope": {
+                                "type": "string",
+                                "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
+                                "enum": [
+                                    "subscription",
+                                    "managementGroup"
+                                ]
+                            },
+                            "organizationName": {
+                                "type": "string",
+                                "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
                             }
-                        }
-                    },
-                    "additionalProperties": false
+                        },
+                        "required": [
+                            "subscriptionId",
+                            "managementGroupId",
+                            "serviceConnectionScope"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "required": [
