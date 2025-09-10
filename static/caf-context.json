@@ -72,44 +72,51 @@
                     "description": "Default organization name for Azure DevOps projects."
                 },
                 "projects": {
-                    "type": "array",
-                    "description": "Array of DevOps project service connection configurations.",
-                    "items": {
-                        "type": "object",
-                        "description": "A single project/service-connection configuration.",
-                        "properties": {
-                            "projectName": {
-                                "type": "string",
-                                "description": "Optional name/key for the project entry."
-                            },
-                            "subscriptionId": {
-                                "type": "string",
-                                "description": "Subscription ID in Azure related to this service connection."
-                            },
-                            "managementGroupId": {
-                                "type": "string",
-                                "description": "Management group ID where this subscription resides."
-                            },
-                            "serviceConnectionScope": {
-                                "type": "string",
-                                "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
-                                "enum": [
-                                    "subscription",
-                                    "managementGroup"
-                                ]
-                            },
-                            "organizationName": {
-                                "type": "string",
-                                "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
+                    "type": "object",
+                    "description": "Object containing project configurations with project names as keys.",
+                    "patternProperties": {
+                        "^.*$": {
+                            "type": "array",
+                            "description": "Array of service connection configurations for a project.",
+                            "items": {
+                                "type": "object",
+                                "description": "A single service-connection configuration.",
+                                "properties": {
+                                    "subscriptionId": {
+                                        "type": "string",
+                                        "description": "Subscription ID in Azure related to this service connection."
+                                    },
+                                    "managementGroupId": {
+                                        "type": "string",
+                                        "description": "Management group ID where this subscription resides."
+                                    },
+                                    "serviceConnectionScope": {
+                                        "type": "string",
+                                        "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
+                                        "enum": [
+                                            "subscription",
+                                            "managementGroup"
+                                        ]
+                                    },
+                                    "organizationName": {
+                                        "type": "string",
+                                        "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
+                                    },
+                                    "projectName": {
+                                        "type": "string",
+                                        "description": "Optional name/key for the project entry."
+                                    }
+                                },
+                                "required": [
+                                    "subscriptionId",
+                                    "managementGroupId",
+                                    "serviceConnectionScope"
+                                ],
+                                "additionalProperties": false
                             }
-                        },
-                        "required": [
-                            "subscriptionId",
-                            "managementGroupId",
-                            "serviceConnectionScope"
-                        ],
-                        "additionalProperties": false
-                    }
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "required": [
