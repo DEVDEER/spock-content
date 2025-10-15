@@ -93,8 +93,9 @@ $mappings.Keys | ForEach-Object {
             $flat = Flatten-Json -object $json -Prefix $secret.Key
             $flat
             $flat.GetEnumerator() | ForEach-Object {
-                dotnet user-secrets set "$_.Key" "$_.Value" --project $currentProject | Out-Null
-                Write-Host "-> Updated secret $($_.Key)" -ForegroundColor Green
+                $keyToTake = $_.Key.Replace('[', '').Replace(']', '.')
+                dotnet user-secrets set $keyToTake $_.Value --project $currentProject | Out-Null
+                Write-Host "-> Updated secret $keyToTake" -ForegroundColor Green
             }
             continue
         }
