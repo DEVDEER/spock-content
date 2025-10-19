@@ -127,56 +127,127 @@
         },
         "azureBudgets": {
             "type": "object",
-            "description": "Configuration for Azure budget settings.",
+            "description": "Configuration for Azure budget settings. Supports automatic date calculation and flexible global/subscription-level overrides.",
             "properties": {
                 "defaultActionGroupResourceId": {
                     "type": "string",
-                    "description": "Resource ID for the default action group to notify when budget thresholds are exceeded."
+                    "description": "Resource ID for the default action group to notify when budget thresholds are exceeded. Used as fallback when subscription-level actionGroupResourceId is not specified."
+                },
+                "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Optional global start date for budgets in YYYY-MM-DD format. If not specified, defaults to first day of current month. Can be overridden at subscription level."
+                },
+                "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Optional global end date for budgets in YYYY-MM-DD format. If not specified, defaults to first day of current month plus one year. Can be overridden at subscription level."
+                },
+                "currency": {
+                    "type": "string",
+                    "description": "Optional global currency code for budgets (e.g., 'USD', 'EUR', 'GBP'). Can be overridden at subscription level.",
+                    "enum": [
+                        "USD",
+                        "EUR", 
+                        "GBP",
+                        "CAD",
+                        "AUD",
+                        "JPY",
+                        "CHF"
+                    ]
+                },
+                "thresholdRules": {
+                    "type": "array",
+                    "description": "Optional global array of threshold percentages for budget alerts (e.g., [80, 90, 100]). Can be overridden at subscription level.",
+                    "items": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "description": "Threshold percentage value (1-1000)"
+                    }
+                },
+                "thresholdType": {
+                    "type": "string", 
+                    "description": "Optional global type of threshold calculation. 'Actual' uses current spending, 'Forecasted' uses predicted spending. Can be overridden at subscription level.",
+                    "enum": [
+                        "Forecasted",
+                        "Actual"
+                    ]
                 },
                 "subscriptions": {
                     "type": "object",
-                    "description": "Budget configurations for various subscriptions.",
+                    "description": "Budget configurations for various subscriptions. Each subscription can override global settings.",
                     "patternProperties": {
                         "^.*$": {
                             "type": "array",
-                            "description": "Array of budget configurations for the subscription.",
+                            "description": "Array of budget configurations for the subscription. Multiple budgets can be defined with different time grains.",
                             "items": {
                                 "type": "object",
+                                "description": "Individual budget configuration. Required fields: timeGrain, amount. Optional fields override global settings.",
                                 "properties": {
                                     "timeGrain": {
                                         "type": "string",
-                                        "description": "Time grain for the budget (e.g., 'Monthly', 'Quarterly', etc.).",
+                                        "description": "Time grain for the budget period.",
                                         "enum": [
                                             "Monthly",
-                                            "Quarterly",
+                                            "Quarterly", 
                                             "Annually"
                                         ]
                                     },
                                     "amount": {
                                         "type": "number",
-                                        "description": "Budget amount."
+                                        "minimum": 0.01,
+                                        "description": "Budget amount in the specified currency."
+                                    },
+                                    "startDate": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Optional start date override for this budget in YYYY-MM-DD format. Overrides global startDate and auto-calculation."
+                                    },
+                                    "endDate": {
+                                        "type": "string",
+                                        "format": "date", 
+                                        "description": "Optional end date override for this budget in YYYY-MM-DD format. Overrides global endDate and auto-calculation."
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "description": "Optional currency override for this budget. Overrides global currency setting.",
+                                        "enum": [
+                                            "USD",
+                                            "EUR",
+                                            "GBP", 
+                                            "CAD",
+                                            "AUD",
+                                            "JPY",
+                                            "CHF"
+                                        ]
                                     },
                                     "thresholdRules": {
                                         "type": "array",
-                                        "description": "Array of threshold percentages for budget alerts.",
+                                        "description": "Optional threshold percentages override for this budget. Overrides global thresholdRules.",
                                         "items": {
-                                            "type": "number"
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "maximum": 1000,
+                                            "description": "Threshold percentage value (1-1000)"
                                         }
                                     },
                                     "thresholdType": {
                                         "type": "string",
-                                        "description": "Type of threshold calculation (e.g., 'Forecasted', 'Actual').",
+                                        "description": "Optional threshold calculation type override for this budget. Overrides global thresholdType.",
                                         "enum": [
                                             "Forecasted",
                                             "Actual"
                                         ]
+                                    },
+                                    "actionGroupResourceId": {
+                                        "type": "string",
+                                        "description": "Optional action group resource ID override for this budget. Overrides defaultActionGroupResourceId."
                                     }
                                 },
                                 "required": [
                                     "timeGrain",
-                                    "amount",
-                                    "thresholdRules",
-                                    "thresholdType"
+                                    "amount"
                                 ],
                                 "additionalProperties": false
                             }
@@ -195,7 +266,7 @@
     "required": [
         "tenantId",
         "managementSubscriptionId",
-        "adminEntraGroupName",
+        "adminEntraGroupName", 
         "companyShort",
         "companyName",
         "isRoot",
