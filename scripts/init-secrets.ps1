@@ -34,7 +34,7 @@ $mappings = @{
 }
 # Array of keys to not apply from App Configuration
 $ignoreList = @(
-    'ConnectionStrings:Griffin'
+    'ConnectionStrings:TODO'
 )
 # If this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
