@@ -1,10 +1,18 @@
-﻿function Flatten-Json {
+function Flatten-Json {
     param(
         [Parameter(Mandatory)]
         [object]$Object,
         [string]$Prefix = ''
     )
     $result = @{}
+    if ($Object.GetType().BaseType.FullName -eq 'System.Array') {
+        # the value is an array so the we need to add ":x" items
+        $path = $Prefix -ne '' ? "$Prefix`:$key" : $key
+        for ($i = 0; $i -lt $Object.Length; $i++) {
+            $pathToTake = $path + "$i"
+            $result[$pathToTake] = $Object[$i]
+        }
+    }
     foreach ($key in $Object.PSObject.Properties.Name) {
         $value = $Object.$key
         $path = if ($Prefix) { "$Prefix`:$key" } else { $key }
@@ -19,10 +27,12 @@
             }
         }
         else {
-            $result[$path] = $value
+            if (-not $path.EndsWith(':Length')) {
+                # 'Length' comes from arrays
+                $result[$path] = $value
+            }
         }
     }
-
     return $result
 }
 
@@ -34,7 +44,7 @@ $mappings = @{
 }
 # Array of keys to not apply from App Configuration
 $ignoreList = @(
-    'ConnectionStrings:TODO'
+    'ConnectionStrings:Griffin'
 )
 # If this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
@@ -54,7 +64,7 @@ $mappings.Keys | ForEach-Object {
     foreach ($secret in $secrets) {
         $apply = $false
         # check if the the current label is part of the mapping for the project
-        foreach($label in $labels) {
+        foreach ($label in $labels) {
             if ($label -eq $secret.Label) {
                 $apply = $true
                 break
@@ -65,7 +75,7 @@ $mappings.Keys | ForEach-Object {
             continue
         }
         # check if the current key is on the ignore list
-        foreach($ignore in $ignoreList) {
+        foreach ($ignore in $ignoreList) {
             if ($secret.Key.StartsWith($ignore)) {
                 $apply = $false
                 break
@@ -109,6 +119,3 @@ $mappings.Keys | ForEach-Object {
     dotnet user-secrets list --project $_
     Write-Host ''
 }
-
-
-
