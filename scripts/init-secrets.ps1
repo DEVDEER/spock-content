@@ -13,22 +13,21 @@ function Flatten-Json {
             $result[$pathToTake] = $Object[$i]
         }
     }
-    foreach ($key in $Object.PSObject.Properties.Name) {
-        $value = $Object.$key
-        $path = if ($Prefix) { "$Prefix`:$key" } else { $key }
-        if ($value -is [System.Management.Automation.PSCustomObject]) {
-            $nested = Flatten-Json -Object $value -Prefix $path
-            $result += $nested
-        }
-        elseif ($value -is [System.Collections.IEnumerable] -and -not ($value -is [string])) {
-            for ($i = 0; $i -lt $value.Count; $i++) {
-                $nested = Flatten-Json -Object $value[$i] -Prefix "$path`:$i"
+    else {
+        foreach ($key in $Object.PSObject.Properties.Name) {
+            $value = $Object.$key
+            $path = if ($Prefix) { "$Prefix`:$key" } else { $key }
+            if ($value -is [System.Management.Automation.PSCustomObject]) {
+                $nested = Flatten-Json -Object $value -Prefix $path
                 $result += $nested
             }
-        }
-        else {
-            if (-not $path.EndsWith(':Length')) {
-                # 'Length' comes from arrays
+            elseif ($value -is [System.Collections.IEnumerable] -and -not ($value -is [string])) {
+                for ($i = 0; $i -lt $value.Count; $i++) {
+                    $nested = Flatten-Json -Object $value[$i] -Prefix "$path`:$i"
+                    $result += $nested
+                }
+            }
+            else {
                 $result[$path] = $value
             }
         }
