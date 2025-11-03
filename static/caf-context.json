@@ -47,7 +47,7 @@
         },
         "forceAzConfig": {
             "type": "boolean",
-            "description": "Defines if the re-use of a current Azure PowerShell context should be switched off."
+            "description": "Defines if the Powershell AZ config should be refreshed every time."
         },
         "subscriptionsToIgnore": {
             "type": "array",
