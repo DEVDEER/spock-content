@@ -43,11 +43,11 @@
         },
         "forceContext": {
             "type": "boolean",
-            "description": "Defines if the re-use of a current Azure PowerShell context should be switched off."
+            "description": "Defines if the context will be set in any case to the tenant and subscription provided here."            
         },
         "forceAzConfig": {
             "type": "boolean",
-            "description": ""
+            "description": "Defines if the re-use of a current Azure PowerShell context should be switched off."
         },
         "subscriptionsToIgnore": {
             "type": "array",
