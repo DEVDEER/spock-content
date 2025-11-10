@@ -436,8 +436,13 @@ Write-Host "Retrieving all Swagger versions from app settings file... "
 $settingsFile = "$PWD/appsettings.json"
 if (!(Test-Path $settingsFile)) {
     # We don't have an appsettings.json here. In CI this is normal because we should run inside of the project folder. This
-    # means that we are currently not in a CI pipeline.
+    # means that we are currently not in a CI pipeline.    
+    $originalSettings = $settingsFile
     $settingsFile = "$PWD/appsettings$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').json"
+    Write-Host "Could not find $originalSettingsFile. Searching for $settingsFile..."
+    if (!(Test-Path $settingsFile)) {
+        throw "The settings file $settingsFile was also not found. Exiting."
+    }
 }
 Write-Host "Reading $settingsFile..."
 $settingsContent = Get-Content -Raw $settingsFile
