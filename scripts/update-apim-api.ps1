@@ -235,6 +235,9 @@ function Build-Swagger() {
     Write-Host "Done"
     Write-Host "Generating swagger..."
     dotnet swagger tofile --output $Output "./bin/swagger/$AssemblyName.dll" $ApiVersion
+    if (!(Test-Path $Output)) {
+        throw "The desired output document $Output was not generated!"
+    }
     Write-Host "Replacing stage name..." -NoNewline
     $rawContent = Get-Content -Raw $Output
     $json = $rawContent | ConvertFrom-Json
