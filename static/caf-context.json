@@ -67,6 +67,46 @@
                 "type": "string"
             }
         },
+        "lightHouse": {
+            "type": "object",
+            "description": "Configuration for Azure Lighthouse.",
+            "properties": {
+                "offerName": {
+                    "type": "string",
+                    "description": "The name of the Lighthouse Offer to display."
+                },
+                "offerDescription": {
+                    "type": "string",
+                    "description": "A descriptive text for the offer."
+                },
+                "managedByTenantId": {
+                    "type": "string",
+                    "description": "The unique id of the tenant of the Lighthouse partner."
+                },
+                "authorizations": {
+                    "type": "array",
+                    "description": "The authorizations required by the managing tenants principals.",
+                    "items": {
+                        "type": "object",                        
+                        "description": "A single element which maps a certain SP from the managing tenant to a role in the target tenant.",
+                        "properties": {
+                            "principalId": {
+                                "type": "string",
+                                "description": "The id of source SP."
+                            },
+                            "principalIdDisplayName": {
+                                "type": "string",
+                                "description": "The name of source SP."
+                             },
+                            "roleDefinitionId": {
+                                "type": "string",
+                                "description": "The unique id of the role."
+                             },
+                        }
+                    }
+                }
+            }
+        },
         "azureDevOps": {
             "type": "object",
             "description": "Configuration for Azure DevOps environment.",
