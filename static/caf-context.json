@@ -17,6 +17,10 @@
             "type": "string",
             "description": "The GUID of a subscription which should be targeted in the current context."
         },
+        "rootManagementGroupId": {
+            "type": "string",
+            "description": "The ID of the root management group."
+        },
         "managementGroupId": {
             "type": "string",
             "description": "The ID of a management group which should be targeted in the current context."
@@ -43,7 +47,7 @@
         },
         "forceContext": {
             "type": "boolean",
-            "description": "Defines if the context will be set in any case to the tenant and subscription provided here."            
+            "description": "Defines if the context will be set in any case to the tenant and subscription provided here."
         },
         "forceAzConfig": {
             "type": "boolean",
@@ -87,7 +91,7 @@
                     "type": "array",
                     "description": "The authorizations required by the managing tenants principals.",
                     "items": {
-                        "type": "object",                        
+                        "type": "object",
                         "description": "A single element which maps a certain SP from the managing tenant to a role in the target tenant.",
                         "properties": {
                             "principalId": {
@@ -97,11 +101,11 @@
                             "principalIdDisplayName": {
                                 "type": "string",
                                 "description": "The name of source SP."
-                             },
+                            },
                             "roleDefinitionId": {
                                 "type": "string",
                                 "description": "The unique id of the role."
-                             },
+                            }
                         }
                     }
                 }
@@ -137,10 +141,7 @@
                                     "serviceConnectionScope": {
                                         "type": "string",
                                         "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
-                                        "enum": [
-                                            "subscription",
-                                            "managementGroup"
-                                        ]
+                                        "enum": ["subscription", "managementGroup"]
                                     },
                                     "organizationName": {
                                         "type": "string",
@@ -151,11 +152,7 @@
                                         "description": "Optional name/key for the project entry."
                                     }
                                 },
-                                "required": [
-                                    "subscriptionId",
-                                    "managementGroupId",
-                                    "serviceConnectionScope"
-                                ],
+                                "required": ["subscriptionId", "managementGroupId", "serviceConnectionScope"],
                                 "additionalProperties": false
                             }
                         }
@@ -163,10 +160,7 @@
                     "additionalProperties": false
                 }
             },
-            "required": [
-                "defaultOrganizationName",
-                "projects"
-            ],
+            "required": ["defaultOrganizationName", "projects"],
             "additionalProperties": false
         },
         "azureBudgets": {
@@ -190,15 +184,7 @@
                 "currency": {
                     "type": "string",
                     "description": "Optional global currency code for budgets (e.g., 'USD', 'EUR', 'GBP'). Can be overridden at subscription level.",
-                    "enum": [
-                        "USD",
-                        "EUR", 
-                        "GBP",
-                        "CAD",
-                        "AUD",
-                        "JPY",
-                        "CHF"
-                    ]
+                    "enum": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF"]
                 },
                 "thresholdRules": {
                     "type": "array",
@@ -211,12 +197,9 @@
                     }
                 },
                 "thresholdType": {
-                    "type": "string", 
+                    "type": "string",
                     "description": "Optional global type of threshold calculation. 'Actual' uses current spending, 'Forecasted' uses predicted spending. Can be overridden at subscription level.",
-                    "enum": [
-                        "Forecasted",
-                        "Actual"
-                    ]
+                    "enum": ["Forecasted", "Actual"]
                 },
                 "subscriptions": {
                     "type": "object",
@@ -232,11 +215,7 @@
                                     "timeGrain": {
                                         "type": "string",
                                         "description": "Time grain for the budget period.",
-                                        "enum": [
-                                            "Monthly",
-                                            "Quarterly", 
-                                            "Annually"
-                                        ]
+                                        "enum": ["Monthly", "Quarterly", "Annually"]
                                     },
                                     "amount": {
                                         "type": "number",
@@ -250,21 +229,13 @@
                                     },
                                     "endDate": {
                                         "type": "string",
-                                        "format": "date", 
+                                        "format": "date",
                                         "description": "Optional end date override for this budget in YYYY-MM-DD format. Overrides global endDate and auto-calculation."
                                     },
                                     "currency": {
                                         "type": "string",
                                         "description": "Optional currency override for this budget. Overrides global currency setting.",
-                                        "enum": [
-                                            "USD",
-                                            "EUR",
-                                            "GBP", 
-                                            "CAD",
-                                            "AUD",
-                                            "JPY",
-                                            "CHF"
-                                        ]
+                                        "enum": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF"]
                                     },
                                     "thresholdRules": {
                                         "type": "array",
@@ -279,20 +250,14 @@
                                     "thresholdType": {
                                         "type": "string",
                                         "description": "Optional threshold calculation type override for this budget. Overrides global thresholdType.",
-                                        "enum": [
-                                            "Forecasted",
-                                            "Actual"
-                                        ]
+                                        "enum": ["Forecasted", "Actual"]
                                     },
                                     "actionGroupResourceId": {
                                         "type": "string",
                                         "description": "Optional action group resource ID override for this budget. Overrides defaultActionGroupResourceId."
                                     }
                                 },
-                                "required": [
-                                    "timeGrain",
-                                    "amount"
-                                ],
+                                "required": ["timeGrain", "amount"],
                                 "additionalProperties": false
                             }
                         }
@@ -300,21 +265,10 @@
                     "additionalProperties": false
                 }
             },
-            "required": [
-                "defaultActionGroupResourceId",
-                "subscriptions"
-            ],
+            "required": ["defaultActionGroupResourceId", "subscriptions"],
             "additionalProperties": false
         }
     },
-    "required": [
-        "tenantId",
-        "managementSubscriptionId",
-        "adminEntraGroupName", 
-        "companyShort",
-        "companyName",
-        "isRoot",
-        "forceContext"
-    ],
+    "required": ["tenantId", "managementSubscriptionId", "adminEntraGroupName", "companyShort", "companyName", "isRoot", "forceContext"],
     "additionalProperties": false
 }
