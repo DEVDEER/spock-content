@@ -47,7 +47,7 @@
             }
         },
         "bicepModuleVersion": {
-            "type": [ "integer" ],
+            "type": [ "string" ],
             "description": "Optional maximum value of major version of BICEP templates to use in Initialize-CafBicep."
         },
         "bicepMinVersion": {
