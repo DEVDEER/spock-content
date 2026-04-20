@@ -1,0 +1,68 @@
+variables:
+  - group: ${{ variables['System.TeamProject'] }}
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+trigger: none
+
+schedules:
+  # Run weekly on Sunday at midnight
+  - cron: '0 0 * * 0'
+    displayName: Weekly Build
+    branches:
+      include:
+        - main
+    always: true
+
+jobs:
+  - job: DependencyCheck
+    displayName: 'OWASP Dependency Check'
+    timeoutInMinutes: 100
+    steps:
+
+      - task: PowerShell@2
+        displayName: 'Look for dependency-check data directory'
+        inputs:
+          targetType: 'inline'
+          script: |
+            $dataPath = $(get-childitem "$(Agent.WorkFolder)\_tasks\dependency-check-build-task*\*.*.*\dependency-check\data").FullName
+            if ($dataPath) {
+              Write-Host "##vso[task.setvariable variable=DEPENDENCY_CHECK_DATA_PATH]$dataPath"
+              Write-Host "Found dependency-check data directory: $dataPath"
+            }
+            else {
+              Write-Host "No dependency-check data directory found."
+            }
+
+      - task: Cache@2
+        displayName: 'Cache dependency check data'
+        condition: ne(variables['DEPENDENCY_CHECK_DATA_PATH'], '')
+        inputs:
+          key: 'dependency-check | "$(Agent.OS)"'
+          path: $(DEPENDENCY_CHECK_DATA_PATH)
+
+      - task: dependency-check-build-task@6
+        displayName: 'Dependency Check'
+        continueOnError: true
+        inputs:
+          projectName: $(System.TeamProject)
+          scanPath: 'src/**/*.csproj'
+          failOnCVSS: 4
+          format: 'HTML,JSON,JUNIT'
+          reportsDirectory: '$(Agent.WorkFolder)/dependency-check'
+          additionalArguments: '--nvdApiKey $(NvdApiKey)'
+
+      - script: |
+          if [ ! -f "$(Agent.WorkFolder)/dependency-check/dependency-check-junit.xml" ]; then
+            echo "ERROR: Dependency Check did not produce a JUnit report! Possible execution error."
+            exit 1
+          fi
+        displayName: 'Verify Dependency Check Execution'
+
+      - task: PublishTestResults@2
+        displayName: 'Publish OWASP Test Results'
+        inputs:
+          testResultsFiles: '*junit.xml'
+          searchFolder: '$(Agent.WorkFolder)/dependency-check'
+          testRunTitle: 'OWASP Dependency Check'
