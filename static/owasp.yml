@@ -21,19 +21,16 @@ jobs:
     timeoutInMinutes: 100
     steps:
 
-      - task: PowerShell@2
+      - pwsh: |
+          $dataPath = $(get-childitem "$(Agent.WorkFolder)\_tasks\dependency-check-build-task*\*.*.*\dependency-check\data").FullName
+          if ($dataPath) {
+            Write-Host "##vso[task.setvariable variable=DEPENDENCY_CHECK_DATA_PATH]$dataPath"
+            Write-Host "Found dependency-check data directory: $dataPath"
+          }
+          else {
+            Write-Host "No dependency-check data directory found."
+          }
         displayName: 'Look for dependency-check data directory'
-        inputs:
-          targetType: 'inline'
-          script: |
-            $dataPath = $(get-childitem "$(Agent.WorkFolder)\_tasks\dependency-check-build-task*\*.*.*\dependency-check\data").FullName
-            if ($dataPath) {
-              Write-Host "##vso[task.setvariable variable=DEPENDENCY_CHECK_DATA_PATH]$dataPath"
-              Write-Host "Found dependency-check data directory: $dataPath"
-            }
-            else {
-              Write-Host "No dependency-check data directory found."
-            }
 
       - task: Cache@2
         displayName: 'Cache dependency check data'
@@ -53,12 +50,12 @@ jobs:
           reportsDirectory: '$(Agent.WorkFolder)/dependency-check'
           additionalArguments: '--nvdApiKey $(NvdApiKey)'
 
-      - script: |
-          if [ ! -f "$(Agent.WorkFolder)/dependency-check/dependency-check-junit.xml" ]; then
-            echo "ERROR: Dependency Check did not produce a JUnit report! Possible execution error."
-            exit 1
-          fi
+      - pwsh: |
+          if (!(Test-Path "$(Agent.WorkFolder)/dependency-check/dependency-check-junit.xml")) {
+            throw "ERROR: Dependency Check did not produce a JUnit report! Possible execution error."
+          }
         displayName: 'Verify Dependency Check Execution'
+        workingDirectory: $(Build.SourcesDirectory)
 
       - task: PublishTestResults@2
         displayName: 'Publish OWASP Test Results'
