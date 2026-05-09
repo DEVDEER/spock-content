@@ -20,20 +20,18 @@ param (
     $LogAnalyticsKey = ''
 )
 $ErrorActionPreference = 'Stop'
-Write-Host "Version: 1.1"
+Write-Host "Version: 1.2"
 # Get credentials
 $path = "$PSScriptRoot/aci-config.yaml"
 $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
 $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
-Write-Host "Client id for $DeploySpName is $clientId."
-# Extract what you need from existing config
-$newImage = "$($ContainerImageName):$ContainerImageTagToDeploy"
 # Redeploy using az container create with existing config exported as YAML
 az container export --resource-group $ResourceGroup --name $AciName --file $path
 # Patch the YAML
 $content = Get-Content $path
 # Override the container image tag
 $regex = "image: $($ContainerImageName):\S+"
+$newImage = "$($ContainerImageName):$ContainerImageTagToDeploy"
 $content = $content -replace $regex, "image: $newImage"
 # Override API version
 #$regex = "apiVersion: \S+"
