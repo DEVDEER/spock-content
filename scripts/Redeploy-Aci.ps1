@@ -20,6 +20,7 @@ param (
     $LogAnalyticsKey = ''
 )
 $ErrorActionPreference = 'Stop'
+Write-Host "Version: 1.0"
 # Get credentials
 $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
 $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
@@ -51,6 +52,7 @@ if ($LogAnalyticsKey.Length -gt 0) {
 }
 # Overwrite the file
 $content | Set-Content aci-config.yaml
+$content
 # Redeploy from YAML — credentials need to be injected separately as they're not exported
 az container create --resource-group $ResourceGroup `
     --file aci-config.yaml `
