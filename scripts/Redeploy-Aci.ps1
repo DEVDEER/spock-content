@@ -33,8 +33,8 @@ $content = Get-Content aci-config.yaml
 $regex = "image: $($ContainerImageName):\S+"
 $content = $content -replace $regex, "image: $newImage"
 # Override API version
-$regex = "apiVersion:\S+"
-$content = $content -replace $regex, "2025-04-01"
+$regex = "apiVersion: \S+"
+$content = $content -replace $regex, "apiVersion: 2025-04-01"
 # Remove unsupported settings
 $content = $content -replace "provisioningTimeoutInSeconds: \S+", ""
 # Add log analytics key after workspaceId
