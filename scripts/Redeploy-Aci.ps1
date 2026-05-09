@@ -5,26 +5,23 @@ param (
     [string]
     $AciName,
     [string]
-    $DeploySpName,
-    [string]
-    $DeploySpKeyVaultName,
-    [string]
-    $DeploySpKeyVaultKey,
-    [string]
     $ContainerImageName,
     [string]
     $ContainerImageTagToDeploy,
     [string]
     $AcrName,
     [string]
-    $LogAnalyticsKey = ''
+    $LogAnalyticsKey = '',
+    [string]
+    $DeploySpName = '',
+    [string]
+    $DeploySpKeyVaultName = '',
+    [string]
+    $DeploySpKeyVaultKey = ''
 )
 $ErrorActionPreference = 'Stop'
 Write-Host "Version: 1.3"
-# Get credentials
 $path = "$PSScriptRoot/aci-config.yaml"
-$clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
-$password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
 # Export current ACI config to file
 az container export --resource-group $ResourceGroup --name $AciName --file $path
 if (!(Test-Path $path)) {
@@ -57,9 +54,19 @@ if ($LogAnalyticsKey.Length -gt 0) {
 $content | Set-Content $path
 $content
 # Redeploy from YAML — credentials need to be injected separately as they're not exported
-az container create --resource-group $ResourceGroup `
-    --file $path `
-    --registry-login-server $AcrName `
-    --registry-username $clientId `
-    --registry-password $password `
-    -o json
+if ($DeploySpName.Length -gt 0 -and $DeploySpKeyVaultName.Length -gt 0 -and $DeploySpKeyVaultKey.Length -gt 0) {
+    # Deploy with passing registry server data
+    $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
+    $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
+    az container create `
+        -g $ResourceGroup `
+        -n $AciName `
+        -f $path `
+        --registry-login-server $AcrName `
+        --registry-username $clientId `
+        --registry-password $password `
+        -o json
+    else {
+        # Deploy without passing registry server data
+        az container create -g $ResourceGroup -n $AciName -f $path
+    }
