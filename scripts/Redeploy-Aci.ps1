@@ -20,14 +20,17 @@ param (
     $LogAnalyticsKey = ''
 )
 $ErrorActionPreference = 'Stop'
-Write-Host "Version: 1.2"
+Write-Host "Version: 1.3"
 # Get credentials
 $path = "$PSScriptRoot/aci-config.yaml"
 $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
 $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
-# Redeploy using az container create with existing config exported as YAML
+# Export current ACI config to file
 az container export --resource-group $ResourceGroup --name $AciName --file $path
-# Patch the YAML
+if (!(Test-Path $path)) {
+    throw "Could not retrieve config from ACI."
+}
+# Read file
 $content = Get-Content $path
 # Override the container image tag
 $regex = "image: $($ContainerImageName):\S+"
