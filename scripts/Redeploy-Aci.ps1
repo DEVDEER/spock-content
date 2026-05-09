@@ -20,17 +20,18 @@ param (
     $LogAnalyticsKey = ''
 )
 $ErrorActionPreference = 'Stop'
-Write-Host "Version: 1.0"
+Write-Host "Version: 1.1"
 # Get credentials
+$path = "$PSScriptRoot/aci-config.yaml"
 $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
 $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
 Write-Host "Client id for $DeploySpName is $clientId."
 # Extract what you need from existing config
 $newImage = "$($ContainerImageName):$ContainerImageTagToDeploy"
 # Redeploy using az container create with existing config exported as YAML
-az container export --resource-group $ResourceGroup --name $AciName --file ./aci-config.yaml
+az container export --resource-group $ResourceGroup --name $AciName --file $path
 # Patch the YAML
-$content = Get-Content ./aci-config.yaml
+$content = Get-Content $path
 # Override the container image tag
 $regex = "image: $($ContainerImageName):\S+"
 $content = $content -replace $regex, "image: $newImage"
@@ -52,11 +53,11 @@ if ($LogAnalyticsKey.Length -gt 0) {
     }
 }
 # Overwrite the file
-$content | Set-Content ./aci-config.yaml
+$content | Set-Content $path
 $content
 # Redeploy from YAML — credentials need to be injected separately as they're not exported
 az container create --resource-group $ResourceGroup `
-    --file ./aci-config.yaml `
+    --file $path `
     --registry-login-server $AcrName `
     --registry-username $clientId `
     --registry-password $password `
