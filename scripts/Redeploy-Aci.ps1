@@ -66,7 +66,8 @@ if ($DeploySpName.Length -gt 0 -and $DeploySpKeyVaultName.Length -gt 0 -and $Dep
         --registry-username $clientId `
         --registry-password $password `
         -o json
-    else {
-        # Deploy without passing registry server data
-        az container create -g $ResourceGroup -n $AciName -f $path
-    }
+}
+else {
+    # Deploy without passing registry server data
+    az container create -g $ResourceGroup -n $AciName -f $path
+}
