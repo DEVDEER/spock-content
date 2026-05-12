@@ -36,14 +36,13 @@ $resolvedAdditionalName = $AdditionalName.Length -gt 0 ? ".$AdditionalName" : ''
 $resolvedAdditionalPath = $AdditionalName.Length -gt 0 ? "/$AdditionalName" : ''
 $files = Get-ChildItem "$BuildOutputDirectory/*.json"
 foreach ($file in $files) {
-    $json = Get-Content -Raw $file | ConvertFrom-Json -Depth 20
-    $json = $json | ConvertTo-Json -Depth 20
-    $version = $json.info.version
-    if (!($SkipServers.IsPresent)) {
-        # add server url to OpenAPI
-        $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$ApiManagementHostname/$ProjectName/$($stage)$($resolvedAdditionalPath)/v$version" })
-    }
     foreach ($stage in $Stages) {
-        $null = $json | Set-Content "$OutputDirectory/openapi.$($ProjectName)$($resolvedAdditionalName).$stage.v$version.json"
+        $json = Get-Content -Raw $file | ConvertFrom-Json -Depth 20
+        $version = $json.info.version
+        if (!($SkipServers.IsPresent)) {
+            # add server url to OpenAPI
+            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$ApiManagementHostname/$ProjectName/$($stage)$($resolvedAdditionalPath)/v$version" })
+        }
+        $null = $json | ConvertTo-Json -Depth 20 | Set-Content "$OutputDirectory/openapi.$($ProjectName)$($resolvedAdditionalName).$stage.v$version.json"
     }
 }
