@@ -174,24 +174,14 @@ if (!(Test-Path -Filter $openApiFilePattern$PWD)) {
 }
 Write-Host "Using existing OpenAPI files:"
 $files = Get-ChildItem -File -Filter $openApiFilePattern$PWD
+if ($files -eq 0) {
+    throw "No API versions found."
+}
 foreach ($file in $files) {
     Write-Host "  $file"
 }
 
 Write-Host "Stage is set to '$TargetStage'."
-
-$settingsFile = "$PSScriptRoot/appsettings.json"
-Write-Host "Retrieving all API versions from app settings $settingsFile."
-$settingsContent = Get-Content -Raw $settingsFile
-$json = $settingsContent | ConvertFrom-Json -Depth 10
-$versions = $json.OpenApi.SupportedVersions
-$versionsAmount = ($versions | Measure-Object).Count
-Write-Host "Found $versionsAmount versions."
-
-if ($versionsAmount -eq 0) {
-    Write-Host $settingsContent
-    throw "No API versions found in $settingsFile."
-}
 
 # prepare the Azure context for accessing API management
 $currentSubscription = (Get-AzContext).Subscription.Id
@@ -207,9 +197,10 @@ CleanupApiManagementReleases -ApiManagementContext $ctx -ApiId "$prefix-$($Targe
 
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
-foreach ($version in $versions) {
+foreach ($currentFile in $files) {
+    $json = Get-Content -Raw $currentFile | ConvertFrom-Json -Depth 20
+    $version = $json.info.version
     $targetApiVersion = "v$($version.Major)"
-    $currentFile = "$output/$($openApiFilePattern.Replace("*", $targetApiVersion))"
     $apiId = "$prefix-$($TargetStage)-v$($version.Major)"
     Write-Host "`n------------------------------------------------------------------------------"
     Write-Host "Starting handling of API version '$targetApiVersion' with assumed id '$apiId'."
