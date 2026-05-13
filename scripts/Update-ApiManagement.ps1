@@ -203,7 +203,7 @@ foreach ($currentFile in $files) {
     Write-Host "Handling file '$currentFile'."
     $content = Get-Content -Raw $currentFile
     $json = $content | ConvertFrom-Json -Depth 20
-    $version = $json.info.version
+    $version = $json.info.version ?? ''
     if ($version.Length -eq 0) {
         $content
         throw "Could not retrieve API version from '$currentFile'."
