@@ -169,15 +169,15 @@ $inputDir = $OpenApiJsonPath.Length -gt 0 ? $OpenApiJsonPath : $PWD
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
 $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
-$openApiFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
+$openApiFilePattern = "openapi.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
 Write-Host "Checking path '$($inputDir)'..."
-if (!(Test-Path $inputDir -Filter $openApiFilePattern$PWD)) {
-    throw "No files with pattern '$openApiFilePattern' where found under $inputDir"
+if (!(Test-Path $inputDir)) {
+    throw "Directory $inputDir not found"
 }
-Write-Host "Using existing OpenAPI files:"
-$files = Get-ChildItem $inputDir -File -Filter $openApiFilePattern
-if ($files -eq 0) {
-    throw "No API versions found."
+Write-Host "Collecting OpenAPI files:"
+$files = Get-ChildItem $inputDir -Filter $openApiFilePattern
+if ($files.Count -eq 0) {
+    throw "No API versions found at $inputDir with pattern '$openApiFilePattern'."
 }
 foreach ($file in $files) {
     Write-Host "  $file"
