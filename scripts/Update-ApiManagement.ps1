@@ -209,8 +209,8 @@ foreach ($currentFile in $files) {
         $content
         throw "Could not retrieve API version from '$currentFile'."
     }
-    $targetApiVersion = "v$($version)"
-    $apiId = "$prefix-$($TargetStage)-v$($version)"
+    $targetApiVersion = "v$version"
+    $apiId = "$prefix-$TargetStage-$targetApiVersion"
     Write-Host "`n------------------------------------------------------------------------------"
     Write-Host "Starting handling of API version '$targetApiVersion' with assumed id '$apiId'."
     Write-Host "------------------------------------------------------------------------------`n"
