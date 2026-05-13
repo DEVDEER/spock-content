@@ -48,6 +48,9 @@ param (
     $ApiManagementResourceGroup,
     [Parameter(Mandatory = $false)]
     [string]
+    $OpenApiJsonPath = '',
+    [Parameter(Mandatory = $false)]
+    [string]
     $OutputDirectory,
     [Parameter(Mandatory = $false)]
     $MaximumReleaseAmount = 1,
@@ -162,16 +165,17 @@ function CleanupApiManagementReleases() {
 
 # arrange variables and switches
 $output = $OutputDirectory.Length -gt 0 ? $OutputDirectory : $PWD
+$inputDir = $OpenApiJsonPath.Length -gt 0 ? $OpenApiJsonPath : $PWD
 $technicalProjectName = $ProjectName.ToLowerInvariant()
 $prefix = "$technicalProjectName$(($AdditionalName.Length -gt 0) ? '-' + $AdditionalName.ToLowerInvariant() : '')"
 $azureNamePart = "$CompanyShortKey-$prefix-$TargetStage"
 $openApiFilePattern = "swagger.$($ProjectName.ToLowerInvariant())$($AdditionalName.Length -gt 0 ? ".$($AdditionalName.ToLowerInvariant())" : '').$($TargetStage).*.json"
-Write-Host "Checking path '$($PWD)'..."
-if (!(Test-Path -Filter $openApiFilePattern$PWD)) {
-    throw "No files with pattern '$openApiFilePattern' where found under $PWD"
+Write-Host "Checking path '$($inputDir)'..."
+if (!(Test-Path $inputDir -Filter $openApiFilePattern$PWD)) {
+    throw "No files with pattern '$openApiFilePattern' where found under $inputDir"
 }
 Write-Host "Using existing OpenAPI files:"
-$files = Get-ChildItem -File -Filter $openApiFilePattern$PWD
+$files = Get-ChildItem $inputDir -File -Filter $openApiFilePattern
 if ($files -eq 0) {
     throw "No API versions found."
 }
