@@ -192,9 +192,9 @@ if ($ApiManagementSubscriptionId.Length -gt 0 -and $currentSubscription -ne $Api
     Set-AzContext -SubscriptionId $ApiManagementSubscriptionId | Out-Null
     Write-Host "Done"
 }
-Write-Host "Setting API Management context for API management '$ApiManagementResourceGroup/$ApiManagementName'... " -NoNewline
+Write-Host "Setting API Management context for API management '$ApiManagementResourceGroup/$ApiManagementName'... "
 $ctx = New-AzApiManagementContext -ResourceGroupName $ApiManagementResourceGroup -ServiceName $ApiManagementName
-Write-Host "Done: [$($ctx.ResourceGroupName).$($ctx.ServiceName)]"
+Write-Host "API management context is: [$($ctx.ResourceGroupName).$($ctx.ServiceName)]"
 CleanupApiManagementReleases -ApiManagementContext $ctx -ApiId "$prefix-$($TargetStage)"
 
 # We will parse the appSettings.json for every supported API version and update it`s information
