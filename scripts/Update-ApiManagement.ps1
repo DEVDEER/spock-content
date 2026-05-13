@@ -16,6 +16,7 @@
 # 0 success
 # Example
 #
+# ./Update-ApiManagement -TargetStage int -CompanyShortKey KEY -ProjectName PROJECT -AdditionalName core -ApiManagementName apm-test -ApiManagementSubscriptionId 00000-000000-000000-000000 -ApiManagementResourceGroup rg-test
 # If you want to perform all steps (swagger and update) in 1 step:
 
 # Copyright DEVDEER GmbH 2026
@@ -34,9 +35,6 @@ param (
     [string]
     $ProjectName,
     [Parameter(Mandatory = $true)]
-    [string]
-    $ApiName,
-    [Parameter(Mandatory = $false)]
     [string]
     $AdditionalName,
     [Parameter(Mandatory = $true)]
