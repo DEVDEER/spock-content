@@ -204,6 +204,7 @@ foreach ($currentFile in $files) {
     $content = Get-Content -Raw $currentFile
     $json = $content | ConvertFrom-Json -Depth 20
     $version = $json.info.version ?? ''
+    $webAppFullRoot = $json.servers[0].url ?? ''
     if ($version.Length -eq 0) {
         $content
         throw "Could not retrieve API version from '$currentFile'."
@@ -228,27 +229,27 @@ foreach ($currentFile in $files) {
     if (!$api) {
         throw "Could not retrieve API from APIM context."
     }
-
+    # build APIM variables
     $latestRevision = (Get-AzApiManagementApiRevision -Context $ctx -ApiId $apiId)[0]
     $currentRevision = [int]$latestRevision.ApiRevision
     $currentVersionSetId = $api.ApiVersionSetId.Split("/")[-1]
     $revision = $currentRevision + 1
     Write-Host "Done"
-
+    # Create new APIM revision
     Write-Host "Creating new revision '$revision' for version '$targetApiVersion' ... " -NoNewline
     New-AzApiManagementApiRevision `
         -Context $ctx `
         -ApiId $apiId `
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
-
+    # Release the created APIM revision as new default release
     Write-Host "Making revision '$revision' default... " -NoNewline
     New-AzApiManagementApiRelease `
         -Context $ctx `
         -ApiId $apiId `
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
-
+    # Import the API
     Write-Host "Importing API for into new revision '$revision' version set '$currentVersionSetId' from file '$currentFile'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
@@ -259,19 +260,17 @@ foreach ($currentFile in $files) {
         -SpecificationPath $currentFile `
         -Path $api.Path | Out-Null
     Write-Host "Done"
-
-    $backendUrl = "$webAppFullRoot/api/$targetApiVersion"
-    Write-Host "Resetting backend API url to '$backendUrl' default... " -NoNewline
-    Set-AzApiManagementApi `
-        -Context $ctx `
-        -ApiId $apiId `
-        -ServiceUrl $backendUrl | Out-Null
-    Write-Host "Done"
-
+    # Handle backend URL if provided in JSON
+    if ($backendUrl.Length -ne 0) {
+        Write-Host "Resetting backend API url to '$backendUrl' default... " -NoNewline
+        Set-AzApiManagementApi `
+            -Context $ctx `
+            -ApiId $apiId `
+            -ServiceUrl $backendUrl | Out-Null
+        Write-Host "Done"
+    }
     # prepare for next run
-
     $api = $null
-
     Write-Host "Handling of API version $targetApiVersion succeeded."
 }
 
