@@ -200,6 +200,7 @@ CleanupApiManagementReleases -ApiManagementContext $ctx -ApiId "$prefix-$($Targe
 # We will parse the appSettings.json for every supported API version and update it`s information
 # in API Management. We need to do this for "old" APIs too.
 foreach ($currentFile in $files) {
+    Write-Host "Handling file '$currentFile'."
     $content = Get-Content -Raw $currentFile
     $json = $content | ConvertFrom-Json -Depth 20
     $version = $json.info.version
