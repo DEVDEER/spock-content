@@ -37,7 +37,7 @@ $resolvedAdditionalPath = $AdditionalName.Length -gt 0 ? "/$AdditionalName" : ''
 $files = Get-ChildItem "$BuildOutputDirectory/*.json"
 foreach ($file in $files) {
     foreach ($stage in $Stages) {
-        $json = Get-Content -Raw $file | ConvertFrom-Json -Depth 20
+        $json = (Get-Content -Raw $file -replace "/api/v(.)/", "/") | ConvertFrom-Json -Depth 20
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
