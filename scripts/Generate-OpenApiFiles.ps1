@@ -27,8 +27,8 @@ param (
     $SkipServers
 )
 $ErrorActionPreference = 'Stop'
-if (!($SkipServers.IsPresent) -and $ApiManagementHostname.Length -eq 0) {
-    throw "If you don't skip server addition you need to specify ApiManagementHostname."
+if (!($SkipServers.IsPresent) -and $ServerHost.Length -eq 0) {
+    throw "If you don't skip server addition you need to specify ServerHost."
 }
 $ProjectName = $ProjectName.ToLowerInvariant()
 $AdditionalName = $AdditionalName.ToLowerInvariant()
