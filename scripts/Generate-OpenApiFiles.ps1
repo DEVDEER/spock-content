@@ -37,12 +37,12 @@ $resolvedAdditionalPath = $AdditionalName.Length -gt 0 ? "/$AdditionalName" : ''
 $files = Get-ChildItem "$BuildOutputDirectory/*.json"
 foreach ($file in $files) {
     foreach ($stage in $Stages) {
-        $json = (Get-Content -Raw $file -replace "/api/v(.)/", "/") | ConvertFrom-Json -Depth 20
+        $json = (Get-Content -Raw $file) -replace "/api/v(.)/", "/" | ConvertFrom-Json -Depth 20
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
             $resolvedHost = $ServerHost -replace '%STAGE%',$stage
-            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$resolvedHost" })
+            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$resolvedHost/api/v$version" })
             Write-Host "Resolved host name for API is $resolvedHost."
         }
         $null = $json | ConvertTo-Json -Depth 20 | Set-Content "$OutputDirectory/openapi.$($ProjectName)$($resolvedAdditionalName).$stage.v$version.json"
