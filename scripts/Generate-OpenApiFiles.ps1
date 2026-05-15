@@ -41,7 +41,8 @@ foreach ($file in $files) {
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
-            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$ServerHost" })
+            $host = $ServerHost -replace '%STAGE%',$stage
+            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$host" })
         }
         $null = $json | ConvertTo-Json -Depth 20 | Set-Content "$OutputDirectory/openapi.$($ProjectName)$($resolvedAdditionalName).$stage.v$version.json"
     }
