@@ -61,7 +61,8 @@ function Remove-Block() {
 }
 
 $ErrorActionPreference = 'Stop'
-Write-Host "Version: 1.3"
+Write-Host "Version: 1.4"
+Write-Host "Updating to image: $($ContainerImageName):$ContainerImageTagToDeploy"
 $path = "$PSScriptRoot/aci-config.yaml"
 # Export current ACI config to file
 az container export --resource-group $ResourceGroup --name $AciName --file $path
