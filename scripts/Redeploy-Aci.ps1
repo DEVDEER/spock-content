@@ -38,6 +38,7 @@ $content = $content -replace $regex, "image: $newImage"
 #$content = $content -replace $regex, "apiVersion: 2025-04-01"
 # Remove unsupported settings
 $content = $content -replace "provisioningTimeoutInSeconds: \S+", ""
+$content = $content -replace "ports: []", ""
 # Add log analytics key after workspaceId
 if ($LogAnalyticsKey.Length -gt 0) {
     # there is a workspace id configured
