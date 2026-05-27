@@ -19,6 +19,47 @@ param (
     [string]
     $DeploySpKeyVaultKey = ''
 )
+
+function Remove-Block() {
+    param (
+        [string[]]
+        $content,
+        [string]
+        $blockStart
+    )
+    $result = @()
+    $regexStart = "^(\s*)$blockStart*.$"
+    $started = $false
+    $indent = -1
+    $no = 0
+    foreach ($line in $content) {
+        $no++
+        $append = $false
+        if ($line -match $regexStart) {
+            $indent = $matches[1].Length
+            $started = $true
+        }
+        else {
+            if ($started) {
+                if ($line -match "^( *).*") {
+                    $currentLineIndent = $matches[1].Length
+                    if ($currentLineIndent -le $indent) {
+                        $started = $false
+                        $append = $true
+                    }
+                }
+            }
+            else {
+                $append = $true
+            }
+        }
+        if ($append) {
+            $result += $line
+        }
+    }
+    $result
+}
+
 $ErrorActionPreference = 'Stop'
 Write-Host "Version: 1.3"
 $path = "$PSScriptRoot/aci-config.yaml"
@@ -38,7 +79,7 @@ $content = $content -replace $regex, "image: $newImage"
 #$content = $content -replace $regex, "apiVersion: 2025-04-01"
 # Remove unsupported settings
 $content = $content -replace "provisioningTimeoutInSeconds: \S+", ""
-$content = $content -replace "ports: []", ""
+$content = Remove-Block -content $content -blockStart "ipAddress:"
 # Add log analytics key after workspaceId
 if ($LogAnalyticsKey.Length -gt 0) {
     # there is a workspace id configured
@@ -53,7 +94,6 @@ if ($LogAnalyticsKey.Length -gt 0) {
 }
 # Overwrite the file
 $content | Set-Content $path
-$content
 # Redeploy from YAML — credentials need to be injected separately as they're not exported
 if ($DeploySpName.Length -gt 0 -and $DeploySpKeyVaultName.Length -gt 0 -and $DeploySpKeyVaultKey.Length -gt 0) {
     # Deploy with passing registry server data
