@@ -1,4 +1,5 @@
 $locks = Remove-CafLocks -ResourceGroupName %RG_NAME% -Confirm:$false
+Write-Verbose "Waiting 3 seconds for locks to be removed."
 Start-Sleep -Seconds 3
 Write-Host "NoDelete locks removed from resource group."
 $existintRules = Get-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME%
