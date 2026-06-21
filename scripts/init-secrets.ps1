@@ -39,7 +39,10 @@ $ErrorActionPreference = 'Stop'
 Use-CafContext
 # Hashtable with relative path to project folder and App Configuration label to use
 $mappings = @{
-    './src/Services/Services.CoreApi/' = @($null, 'Environment.Development', 'Core:Environment:Development')
+    './src/Services/Services.CoreApi/'      = @($null, 'Environment:Development', 'Core:Environment:Development')
+    './src/Services/Services.CrmApi/'       = @($null, 'Environment:Development', 'Crm:Environment:Development')
+    './src/Services/Services.CrmJobRunner/' = @($null, 'Environment:Development', 'CrmJobRunner:Environment:Development')
+    './src/Services/Services.JobRunner/'    = @($null, 'Environment:Development', 'JobRunner:Environment:Development')
 }
 # Array of keys to not apply from App Configuration
 $ignoreList = @(
@@ -54,8 +57,7 @@ if (!$appConfigName.Contains($projectName)) {
 }
 Write-Host "[$appConfigName]" -ForegroundColor Green
 
-$mappings.Keys | ForEach-Object {
-    $currentProject = $_
+foreach ($currentProject in $mappings.Keys) {
     Write-Host "Setting secrets for project $currentProject."
     dotnet user-secrets clear --project $currentProject
     $labels = $mappings[$currentProject]
@@ -85,7 +87,8 @@ $mappings.Keys | ForEach-Object {
             continue
         }
         # this secret should be applied
-        if ($secret.ContentType.Contains('keyvaultref')) {
+        $contentType = $secret?.ContentType ?? ''
+        if ($contentType.Contains('keyvaultref')) {
             # this is a KeyVault reference
             $json = $secret.Value | ConvertFrom-Json
             if ($json.uri -and ($json.uri -Match "https:\/\/(.*)\/secrets\/(.*)$")) {
@@ -96,7 +99,7 @@ $mappings.Keys | ForEach-Object {
                 Write-Host "-> Retrieved secret $($secret.Key) from KeyVault $keyVaultName/$secretName" -ForegroundColor Green
             }
         }
-        if ($secret.ContentType -eq 'application/json') {
+        if ($contentType -eq 'application/json') {
             # it is a JSON secret
             $json = $secret.Value | ConvertFrom-Json
             $flat = Flatten-Json -object $json -Prefix $secret.Key
@@ -113,8 +116,8 @@ $mappings.Keys | ForEach-Object {
         Write-Host "-> Updated secret $($secret.Key)" -ForegroundColor Green
     }
     ## list out the secrets
-    Write-Host "Secrets for project $($_):"
+    Write-Host "Secrets for project $($currentProject):"
     Write-Host "======================================================================"
-    dotnet user-secrets list --project $_
+    dotnet user-secrets list --project $currentProject
     Write-Host ''
 }
