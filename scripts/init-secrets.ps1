@@ -39,14 +39,14 @@ $ErrorActionPreference = 'Stop'
 Use-CafContext
 # Hashtable with relative path to project folder and App Configuration label to use
 $mappings = @{
-    './src/Services/Services.CoreApi/'      = @($null, 'Environment:Development', 'Core:Environment:Development')
-    './src/Services/Services.CrmApi/'       = @($null, 'Environment:Development', 'Crm:Environment:Development')
-    './src/Services/Services.CrmJobRunner/' = @($null, 'Environment:Development', 'CrmJobRunner:Environment:Development')
-    './src/Services/Services.JobRunner/'    = @($null, 'Environment:Development', 'JobRunner:Environment:Development')
+    './src/Services/Services.CoreApi/' = @($null, 'Environment:Development', 'Core:Environment:Development')
 }
 # Array of keys to not apply from App Configuration
 $ignoreList = @(
-    'ConnectionStrings:Griffin'
+)
+# Array of keys which to also write to environment vars during receive
+$envMappings = @(
+    ''
 )
 # If this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
@@ -56,7 +56,6 @@ if (!$appConfigName.Contains($projectName)) {
     throw 'Wrong app configuration detected. Check Get-AzContext'
 }
 Write-Host "[$appConfigName]" -ForegroundColor Green
-
 foreach ($currentProject in $mappings.Keys) {
     Write-Host "Setting secrets for project $currentProject."
     dotnet user-secrets clear --project $currentProject
@@ -114,6 +113,11 @@ foreach ($currentProject in $mappings.Keys) {
         # it is just plain text
         dotnet user-secrets set $secret.Key $secret.Value --project $currentProject | Out-Null
         Write-Host "-> Updated secret $($secret.Key)" -ForegroundColor Green
+        # check if we need to add this as a env var
+        if ($envMappings.Contains($secret.Key)) {
+            $env:SixLaborsLicenseKey = $secret.Value
+            Write-Host "-> Updated env variable $($secret.Key)" -ForegroundColor Green
+        }
     }
     ## list out the secrets
     Write-Host "Secrets for project $($currentProject):"
