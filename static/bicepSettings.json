@@ -34,25 +34,43 @@
             "description": "The default prefix which should identify your company and should be 2-3 characters in order not to waste chars for resource names."
         },
         "namingConventions": {
-            "type": [ "object", "null" ],
+            "type": ["object", "null"],
             "description": "Optional definition for overrides of naming conventions.",
             "properties": {
                 "separator": {
                     "type": "string",
                     "description": "The seperator character to use in resource names if needed."
                 },
-                "*": {                                            
-                    "type": [ "object" ]                                    
+                "*": {
+                    "type": ["object"]
                 }
             }
         },
         "bicepModuleVersion": {
-            "type": [ "string" ],
+            "type": ["string"],
             "description": "Optional maximum value of major version of BICEP templates to use in Initialize-CafBicep."
         },
-        "bicepMinVersion": {
-            "type": [ "string" ],
-            "description": "Optional minimal version of Bicep tooling needed for this."
+        "hub": {
+            "type": ["object", "null"],
+            "description": "Optional settings for the hub.",
+            "properties": {
+                "subscriptionId": {
+                    "type": "string",
+                    "description": "Optional id of the subscription containing the hub."
+                },
+                "vnetResourceGroupName": {
+                    "type": "string",
+                    "description": "Optional name of the resource group containing the hub VNET."
+                },
+                "vnetName": {
+                    "type": "string",
+                    "description": "Optional name of the hub VNET."
+                },
+                "dnsResourceGroupName": {
+                    "type": "string",
+                    "description": "Optional name of the resource group containing the hub DNS resources."
+                }
+            }
         }
     }
 }
