@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param (
     [switch]
-    $ShowSecrets
+    $ShowSecrets,
+    [switch]
+    $ShowSkipped
 )
 
 function Flatten-Json {
@@ -135,7 +137,9 @@ foreach ($file in $mappings.Keys) {
         # check if the the current label is part of the mapping for the project
         $apply = $currentProjectLabels -contains $secretLabel
         if (!$apply) {
-            Write-Host "-> Skipping $secretKey with label '$secretLabel'" -ForegroundColor DarkGray
+            if ($ShowSkipped.IsPresent) {
+                Write-Host "-> Skipping '$secretKey' with label '$secretLabel'" -ForegroundColor DarkGray
+            }
             continue
         }
         # check if the current key is on the ignore list
@@ -146,7 +150,9 @@ foreach ($file in $mappings.Keys) {
             }
         }
         if (!$apply) {
-            Write-Host "-> Skipping $secretKey with label $secretLabel" -ForegroundColor DarkGray
+            if ($ShowSkipped.IsPresent) {
+                Write-Host "-> Skipping '$secretKey' with label '$secretLabel'" -ForegroundColor DarkGray
+            }
             continue
         }
         # this secret should be applied
@@ -158,7 +164,7 @@ foreach ($file in $mappings.Keys) {
                 $keyVaultName = $Matches[1].Split('.')[0]
                 $secretName = $Matches[2]
                 $secret.Value = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secretName -AsPlainText
-                Write-Host "-> Retrieved secret $secretKey from KeyVault $keyVaultName/$secretName" -ForegroundColor Green
+                Write-Host "-> Retrieved secret '$secretKey' from KeyVault '$keyVaultName/$secretName'" -ForegroundColor Green
             }
         }
         if ($secret.ContentType -eq 'application/json') {
@@ -169,13 +175,13 @@ foreach ($file in $mappings.Keys) {
             $flat.GetEnumerator() | ForEach-Object {
                 $keyToTake = $_.Key.Replace('[', '').Replace(']', '.')
                 dotnet user-secrets set $keyToTake $_.Value --project $currentProject | Out-Null
-                Write-Host "-> Updated secret $keyToTake" -ForegroundColor Green
+                Write-Host "-> Updated secret '$keyToTake'" -ForegroundColor Green
             }
             continue
         }
         # it is just plain text
         dotnet user-secrets set $secretKey $secret.Value --project $currentProject | Out-Null
-        Write-Host "-> Updated secret $secretKey" -ForegroundColor Green
+        Write-Host "-> Updated secret '$secretKey' with label '$secretLabel'." -ForegroundColor Green
     }
     if ($ShowSecrets.IsPresent) {
         ## list out the secrets
