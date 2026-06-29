@@ -1,10 +1,16 @@
+[CmdletBinding()]
+param (
+    [switch]
+    $ShowSecrets
+)
+
 function Flatten-Json {
     param(
         [Parameter(Mandatory)]
         [object]$Object,
         [string]$Prefix = ''
     )
-    $result = @{}
+    $result = @{ }
     if ($Object.GetType().BaseType.FullName -eq 'System.Array') {
         # the value is an array so the we need to add ":x" items
         $path = $Prefix -ne '' ? "$Prefix`:$key" : $key
@@ -16,7 +22,12 @@ function Flatten-Json {
     else {
         foreach ($key in $Object.PSObject.Properties.Name) {
             $value = $Object.$key
-            $path = if ($Prefix) { "$Prefix`:$key" } else { $key }
+            $path = if ($Prefix) {
+                "$Prefix`:$key"
+            }
+            else {
+                $key
+            }
             if ($value -is [System.Management.Automation.PSCustomObject]) {
                 $nested = Flatten-Json -Object $value -Prefix $path
                 $result += $nested
@@ -35,19 +46,68 @@ function Flatten-Json {
     return $result
 }
 
-$ErrorActionPreference = 'Stop'
-Use-CafContext
-# Hashtable with relative path to project folder and App Configuration label to use
-$mappings = @{
-    './src/Services/Services.CoreApi/' = @($null, 'Environment:Development', 'Core:Environment:Development')
+function Ensure-Key() {
+    param (
+        [Hashtable]
+        $dict,
+        [string]
+        $key,
+        [string]
+        $val
+    )
+    if (!($dict.Keys -contains $key)) {
+        $dict[$key] = @()
+    }
+    $dict[$key] += $val
 }
+
+function Get-Mappings() {
+    $path = $PSScriptRoot
+    $files = Get-ChildItem $path -Filter *.csproj -Recurse
+    $pattern1 = '.ConfigureDefaults\(false, "(.*)"\)'
+    $pattern2 = '.Select\(KeyFilter.Any, \$"(.*)"\)'
+    $mappings = @{}
+    foreach ($file in $files) {
+        [xml]$content = Get-Content -Raw $file
+        if ($null -ne $content.Project.PropertyGroup.UserSecretsId) {
+            $programFile = "$($file.Directory.FullName)/Program.cs"
+            if (Test-Path $programFile) {
+                $programContent = Get-Content -Raw $programFile
+                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'NONE'
+                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Development'
+                if ($programContent -match $pattern1) {
+                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1]
+                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Environment:Development"
+                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Development"
+                }
+                elseif ($programContent -match $pattern2) {
+                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1].Replace('{ctx.HostingEnvironment.EnvironmentName}', 'Development')
+                }
+            }
+        }
+    }
+    $mappings
+}
+
+$ErrorActionPreference = 'Stop'
 # Array of keys to not apply from App Configuration
-$ignoreList = @(
+$blackList = @(
+    'ConnectionStrings:'
 )
-# Array of keys which to also write to environment vars during receive
-$envMappings = @(
-    ''
-)
+$whiteList = @()
+$mappings = Get-Mappings
+if ($mappings.Length -eq 0) {
+    throw "No mappings available in this directory."
+}
+Write-Host "Found $($mappings.Length) projects to map:"
+$mappings.Keys | ForEach-Object {
+    Write-Host "   - $_"
+}
+
+$null = Use-CafContext
+# Hashtable with relative path to project folder and App Configuration label to use
+$path = $PSScriptRoot
+
 # If this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
 Write-Host "Detecting App Configuration Store for project [$projectName]..." -NoNewline
@@ -56,75 +116,21 @@ if (!$appConfigName.Contains($projectName)) {
     throw 'Wrong app configuration detected. Check Get-AzContext'
 }
 Write-Host "[$appConfigName]" -ForegroundColor Green
-foreach ($currentProject in $mappings.Keys) {
+$secrets = (Get-AzAppConfigurationKeyValue -Endpoint "https://$appConfigName.azconfig.io")
+
+foreach ($file in $mappings.Keys) {
+    $currentProject = $file
     Write-Host "Setting secrets for project $currentProject."
     dotnet user-secrets clear --project $currentProject
-    $labels = $mappings[$currentProject]
-    $secrets = (Get-AzAppConfigurationKeyValue -Endpoint "https://$appConfigName.azconfig.io")
+    $currentProjectLabels = $mappings[$currentProject]
+    Write-Host " -> $($currentProjectLabels -join ',')"
     foreach ($secret in $secrets) {
         $apply = $false
-        # check if the the current label is part of the mapping for the project
-        foreach ($label in $labels) {
-            if ($label -eq $secret.Label) {
-                $apply = $true
-                break
-            }
-        }
-        if (!$apply) {
-            Write-Host "-> Skipping $($secret.Key) with label $($secret.Label)" -ForegroundColor DarkGray
-            continue
-        }
-        # check if the current key is on the ignore list
-        foreach ($ignore in $ignoreList) {
-            if ($secret.Key.StartsWith($ignore)) {
-                $apply = $false
-                break
-            }
-        }
-        if (!$apply) {
-            Write-Host "-> Skipping $($secret.Key) with label $($secret.Label)" -ForegroundColor DarkGray
-            continue
-        }
-        # this secret should be applied
-        $contentType = $secret?.ContentType ?? ''
-        if ($contentType.Contains('keyvaultref')) {
-            # this is a KeyVault reference
-            $json = $secret.Value | ConvertFrom-Json
-            if ($json.uri -and ($json.uri -Match "https:\/\/(.*)\/secrets\/(.*)$")) {
-                # this is a key vault secret
-                $keyVaultName = $Matches[1].Split('.')[0]
-                $secretName = $Matches[2]
-                $secret.Value = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secretName -AsPlainText
-                Write-Host "-> Retrieved secret $($secret.Key) from KeyVault $keyVaultName/$secretName" -ForegroundColor Green
-            }
-        }
-        if ($contentType -eq 'application/json') {
-            # it is a JSON secret
-            $json = $secret.Value | ConvertFrom-Json
-            $flat = Flatten-Json -object $json -Prefix $secret.Key
-            $flat
-            $flat.GetEnumerator() | ForEach-Object {
-                $keyToTake = $_.Key.Replace('[', '').Replace(']', '.')
-                dotnet user-secrets set $keyToTake $_.Value --project $currentProject | Out-Null
-                Write-Host "-> Updated secret $keyToTake" -ForegroundColor Green
-            }
-            continue
-        }
-        # it is just plain text
-        dotnet user-secrets set $secret.Key $secret.Value --project $currentProject | Out-Null
-        Write-Host "-> Updated secret $($secret.Key)" -ForegroundColor Green
-        # check if we need to add this as a env var
-        if ($envMappings.Contains($secret.Key)) {
-            $env:SixLaborsLicenseKey = $secret.Value
-            Write-Host "-> Updated env variable $($secret.Key)" -ForegroundColor Green
-        }
-    }
-    ## list out the secrets
-    Write-Host "Secrets for project $($currentProject):"
-    Write-Host "======================================================================"
-    dotnet user-secrets list --project $currentProject
-    Write-Host ''
-}           $secretLabel = 'NONE'
+        # extract and clear the key and label from the secret
+        $secretKey = $secret.Key
+        $secretLabel = $secret.Label ?? 'NONE'
+        if ($secretLabel.Length -eq 0) {
+            $secretLabel = 'NONE'
         }
         # check if the the current label is part of the mapping for the project
         $apply = $currentProjectLabels -contains $secretLabel
@@ -171,9 +177,11 @@ foreach ($currentProject in $mappings.Keys) {
         dotnet user-secrets set $secretKey $secret.Value --project $currentProject | Out-Null
         Write-Host "-> Updated secret $secretKey" -ForegroundColor Green
     }
-    ## list out the secrets
-    Write-Host "Secrets for project $($currentProject):"
-    Write-Host "======================================================================"
-    dotnet user-secrets list --project $currentProject
-    Write-Host ''
+    if ($ShowSecrets.IsPresent) {
+        ## list out the secrets
+        Write-Host "Secrets for project $($currentProject):"
+        Write-Host "======================================================================"
+        dotnet user-secrets list --project $currentProject
+        Write-Host ''
+    }
 }
