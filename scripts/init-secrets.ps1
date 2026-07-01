@@ -158,20 +158,24 @@ foreach ($file in $mappings.Keys) {
         # this secret should be applied
         if ($secret.ContentType.Contains('keyvaultref')) {
             # this is a KeyVault reference
-            $json = $secret.Value | ConvertFrom-Json
-            if ($json.uri -and ($json.uri -Match "https:\/\/(.*)\/secrets\/(.*)$")) {
-                # this is a key vault secret
-                $keyVaultName = $Matches[1].Split('.')[0]
-                $secretName = $Matches[2]
-                $secret.Value = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secretName -AsPlainText
-                Write-Host "-> Retrieved secret '$secretKey' from KeyVault '$keyVaultName/$secretName'" -ForegroundColor Green
+            try {
+                $json = $secret.Value | ConvertFrom-Json
+                if ($json.uri -and ($json.uri -Match "https:\/\/(.*)\/secrets\/(.*)$")) {
+                    # this is a key vault secret
+                    $keyVaultName = $Matches[1].Split('.')[0]
+                    $secretName = $Matches[2]
+                    $secret.Value = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secretName -AsPlainText
+                    Write-Host "-> Retrieved secret '$secretKey' from KeyVault '$keyVaultName/$secretName'" -ForegroundColor Green
+                }
+            }
+            catch {
+                Write-Host "Received non JSON value for '$secretKey' on label $secretLabel"
             }
         }
         if ($secret.ContentType -eq 'application/json') {
             # it is a JSON secret
             $json = $secret.Value | ConvertFrom-Json
             $flat = Flatten-Json -object $json -Prefix $secretKey
-            $flat
             $flat.GetEnumerator() | ForEach-Object {
                 $keyToTake = $_.Key.Replace('[', '').Replace(']', '.')
                 dotnet user-secrets set $keyToTake $_.Value --project $currentProject | Out-Null
