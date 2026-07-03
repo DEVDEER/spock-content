@@ -98,10 +98,10 @@ $blackList = @(
 )
 $whiteList = @()
 $mappings = Get-Mappings
-if ($mappings.Length -eq 0) {
+if ($mappings.Count -eq 0) {
     throw "No mappings available in this directory."
 }
-Write-Host "Found $($mappings.Length) projects to map:"
+Write-Host "Found $($mappings.Count) projects to map:"
 $mappings.Keys | ForEach-Object {
     Write-Host "   - $_"
 }
@@ -113,7 +113,14 @@ $path = $PSScriptRoot
 # If this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
 Write-Host "Detecting App Configuration Store for project [$projectName]..." -NoNewline
-$appConfigName = (Get-AzAppConfigurationStore)[0].Name
+try {
+    $appConfigs = Get-AzAppConfigurationStore -ErrorAction SilentlyContinue
+    $appConfigName = $appConfigs[0].Name
+}
+catch {
+    Write-Host "Error (probably no valid AZ context)"  -ForegroundColor Red
+    exit 1
+}
 if (!$appConfigName.Contains($projectName)) {
     throw 'Wrong app configuration detected. Check Get-AzContext'
 }
