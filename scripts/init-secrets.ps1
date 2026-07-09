@@ -92,11 +92,16 @@ function Get-Mappings() {
 }
 
 $ErrorActionPreference = 'Stop'
-# Array of keys to not apply from App Configuration
-$blackList = @(
-    'ConnectionStrings:'
-)
-$whiteList = @()
+#
+$path = "$PSScriptRoot/secrets.json"
+$secretsConfig = $null
+if (Test-Path $path) {
+    $secretsConfig = Get-Content -Raw $path | ConvertFrom-Json
+    Write-Host "Using settings in $path"
+}
+$blackList = $secretsConfig.blackList ?? @('ConnectionStrings:')
+$whiteList = $secretsConfig.whiteList ?? @()
+#
 $mappings = Get-Mappings
 if ($mappings.Count -eq 0) {
     throw "No mappings available in this directory."

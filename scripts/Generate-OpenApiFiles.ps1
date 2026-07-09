@@ -24,7 +24,9 @@ param (
     [array]
     $Stages = @( 'int', 'test', 'prod'),
     [switch]
-    $SkipServers
+    $SkipServers,
+    [switch]
+    $KeepServerHostStageForProduction
 )
 $ErrorActionPreference = 'Stop'
 if (!($SkipServers.IsPresent) -and $ServerHost.Length -eq 0) {
@@ -41,7 +43,14 @@ foreach ($file in $files) {
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
-            $resolvedHost = $ServerHost -replace '%STAGE%',$stage
+            if (!$KeepServerHostStageForProduction.IsPresent) {
+                # Will remove the text "-%STAGE%" completely
+                $resolvedHost = $ServerHost -replace '-%STAGE%', ''
+            }
+            else {
+                # Will replace the text "%STAGE%" with the short stage name.
+                $resolvedHost = $ServerHost -replace '%STAGE%', $stage
+            }
             $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$resolvedHost/api/v$version" })
             Write-Host "Resolved host name for API is $resolvedHost."
         }
