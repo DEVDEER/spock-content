@@ -43,8 +43,8 @@ foreach ($file in $files) {
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
-            if (!$KeepServerHostStageForProduction.IsPresent) {
-                # Will remove the text "-%STAGE%" completely
+            if (!$KeepServerHostStageForProduction.IsPresent -and $stage -eq 'prod') {
+                # Will remove the text "-%STAGE%" completely if it is the prod stage
                 $resolvedHost = $ServerHost -replace '-%STAGE%', ''
             }
             else {
