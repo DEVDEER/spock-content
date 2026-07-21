@@ -76,6 +76,7 @@ function Get-Mappings() {
             if (Test-Path $programFile) {
                 $programContent = Get-Content -Raw $programFile
                 Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'NONE'
+                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Environment:Development'
                 Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Development'
                 if ($programContent -match $pattern1) {
                     Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1]
