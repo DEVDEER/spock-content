@@ -76,6 +76,7 @@ function Get-Mappings() {
             if (Test-Path $programFile) {
                 $programContent = Get-Content -Raw $programFile
                 Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'NONE'
+                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Environment:Development'
                 Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Development'
                 if ($programContent -match $pattern1) {
                     Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1]
@@ -120,7 +121,10 @@ $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
 Write-Host "Detecting App Configuration Store for project [$projectName]..." -NoNewline
 try {
     $appConfigs = Get-AzAppConfigurationStore -ErrorAction SilentlyContinue
-    $appConfigName = $appConfigs[0].Name
+    $matching = $appConfigs | Where { $_.Name.ToLower().Contains($projectName.ToLower()) }
+    if ($matching.Length -gt 0) {
+        $appConfigName = $matching[0].Name
+    }
 }
 catch {
     Write-Host "Error (probably no valid AZ context)"  -ForegroundColor Red
