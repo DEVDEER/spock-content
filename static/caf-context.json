@@ -119,6 +119,11 @@
                     "type": "string",
                     "description": "Default organization name for Azure DevOps projects."
                 },
+                "defaultServiceConnectionType": {
+                    "type": "string",
+                    "description": "Default service connection type applied to project entries that do not set their own serviceConnectionType. Defaults to 'arm' when omitted.",
+                    "enum": ["arm", "acr"]
+                },
                 "projects": {
                     "type": "object",
                     "description": "Object containing project configurations with project names as keys.",
@@ -143,6 +148,11 @@
                                         "description": "Scope of the service connection (e.g., 'subscription' or 'managementGroup').",
                                         "enum": ["subscription", "managementGroup"]
                                     },
+                                    "serviceConnectionType": {
+                                        "type": "string",
+                                        "description": "Kind of service connection this entry describes: 'arm' (an AzureRM connection) or 'acr' (a federated docker registry connection to acr<companyShort>shared). When omitted, defaultServiceConnectionType is used (itself defaulting to 'arm'). For 'acr' entries the registry name and the connection name follow the naming convention and cannot be overridden.",
+                                        "enum": ["arm", "acr"]
+                                    },
                                     "organizationName": {
                                         "type": "string",
                                         "description": "Name of the Azure DevOps organization for this connection, overrides defaultOrganizationName."
@@ -152,7 +162,7 @@
                                         "description": "Optional name/key for the project entry."
                                     }
                                 },
-                                "required": ["subscriptionId", "managementGroupId", "serviceConnectionScope"],
+                                "required": ["subscriptionId", "serviceConnectionScope"],
                                 "additionalProperties": false
                             }
                         }
