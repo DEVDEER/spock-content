@@ -1,4 +1,4 @@
-$locks = Remove-CafLocks -ResourceGroupName %RG_NAME% -Confirm:$false
+$locks = Remove-CafLocks -ResourceGroupName %RG_NAME%
 Write-Verbose "Waiting 3 seconds for locks to be removed."
 Start-Sleep -Seconds 3
 Write-Host "NoDelete locks removed from resource group."
@@ -11,7 +11,8 @@ try {
             Remove-AzSqlServerFirewallRule -ServerName %SQL_NAME% -ResourceGroupName %RG_NAME% -FirewallRuleName $ruleName | Out-Null
             if (!$?) {
                 Write-Host "Failed to remove firewall rules: $_" -ForegroundColor Red
-            } else {
+            }
+            else {
                 $count++
             }
             Write-Host "Removed rule $ruleName" -ForegroundColor Cyan
@@ -24,7 +25,8 @@ try {
 finally {
     if ($count -gt 0) {
         Write-Host "Removed all firewall rules from server '%SQL_NAME%'." -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "No removable rules where found on server '%SQL_NAME%'." -ForegroundColor Yellow
     }
     if ($locks) {
