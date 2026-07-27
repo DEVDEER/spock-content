@@ -26,6 +26,8 @@ param (
     [switch]
     $SkipServers,
     [switch]
+    $SkipVersionsReplace,
+    [switch]
     $KeepServerHostStageForProduction
 )
 $ErrorActionPreference = 'Stop'
@@ -35,11 +37,15 @@ if (!($SkipServers.IsPresent) -and $ServerHost.Length -eq 0) {
 $ProjectName = $ProjectName.ToLowerInvariant()
 $AdditionalName = $AdditionalName.ToLowerInvariant()
 $resolvedAdditionalName = $AdditionalName.Length -gt 0 ? ".$AdditionalName" : ''
-$resolvedAdditionalPath = $AdditionalName.Length -gt 0 ? "/$AdditionalName" : ''
 $files = Get-ChildItem "$BuildOutputDirectory/*.json"
 foreach ($file in $files) {
     foreach ($stage in $Stages) {
-        $json = (Get-Content -Raw $file) -replace "/api/v(.)/", "/" | ConvertFrom-Json -Depth 20
+        $raw = (Get-Content -Raw $file)
+        if (!$SkipVersionsReplace.IsPresent) {
+            # Only replace versions in paths if the caller did not forbid it.
+            $raw = $raw -replace "/api/v(.)/", "/"
+        }
+        $json = $raw | ConvertFrom-Json -Depth 20
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
