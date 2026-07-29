@@ -279,6 +279,5 @@
             "additionalProperties": false
         }
     },
-    "required": ["tenantId", "managementSubscriptionId", "adminEntraGroupName", "companyShort", "companyName", "isRoot", "forceContext"],
     "additionalProperties": false
 }
