@@ -1,3 +1,20 @@
+# init-secrets.ps1
+# -------------------------------------------------------------------------------------
+# Copyright DEVDEER GmbH 2026
+# -------------------------------------------------------------------------------------
+# If placed in a project root this will detect every csproj that has user secrets
+# configured and a certain command in its Program.cs pointing toward a label in an
+# Azure App Configuration. It will then reset and re-retrieve all user-secrets that
+# are available for local development automatically. This can handle secrets of types
+# plain text, KeyVault reference and JSON.
+# -------------------------------------------------------------------------------------
+# DISCLAIMER: This is for internal use in DEVDEER projects only. If you use this script
+# we will not guarantee that the behavior is matching your internal security
+# requirements. This uses the functionality of dotnet user-secrets which is not
+# secure against local AIs which could potentially retrieve secrets in your user scope!
+# -------------------------------------------------------------------------------------
+# Latest update: 2026-07-29
+
 [CmdletBinding()]
 param (
     [switch]
@@ -6,7 +23,7 @@ param (
     $ShowSkipped
 )
 
-function Flatten-Json {
+function FlattenJson {
     param(
         [Parameter(Mandatory)]
         [object]$Object,
@@ -31,12 +48,12 @@ function Flatten-Json {
                 $key
             }
             if ($value -is [System.Management.Automation.PSCustomObject]) {
-                $nested = Flatten-Json -Object $value -Prefix $path
+                $nested = FlattenJson -Object $value -Prefix $path
                 $result += $nested
             }
             elseif ($value -is [System.Collections.IEnumerable] -and -not ($value -is [string])) {
                 for ($i = 0; $i -lt $value.Count; $i++) {
-                    $nested = Flatten-Json -Object $value[$i] -Prefix "$path`:$i"
+                    $nested = FlattenJson -Object $value[$i] -Prefix "$path`:$i"
                     $result += $nested
                 }
             }
@@ -48,7 +65,7 @@ function Flatten-Json {
     return $result
 }
 
-function Ensure-Key() {
+function EnsureKey() {
     param (
         [Hashtable]
         $dict,
@@ -63,7 +80,7 @@ function Ensure-Key() {
     $dict[$key] += $val
 }
 
-function Get-Mappings() {
+function GetMappings() {
     $path = $PSScriptRoot
     $files = Get-ChildItem $path -Filter *.csproj -Recurse
     $pattern1 = '.ConfigureDefaults\(false, "(.*)"\)'
@@ -75,16 +92,16 @@ function Get-Mappings() {
             $programFile = "$($file.Directory.FullName)/Program.cs"
             if (Test-Path $programFile) {
                 $programContent = Get-Content -Raw $programFile
-                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'NONE'
-                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Environment:Development'
-                Ensure-Key -dict $mappings -key $file.Directory.FullName -val 'Development'
+                EnsureKey -dict $mappings -key $file.Directory.FullName -val 'NONE'
+                EnsureKey -dict $mappings -key $file.Directory.FullName -val 'Environment:Development'
+                EnsureKey -dict $mappings -key $file.Directory.FullName -val 'Development'
                 if ($programContent -match $pattern1) {
-                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1]
-                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Environment:Development"
-                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Development"
+                    EnsureKey -dict $mappings -key $file.Directory.FullName -val $Matches[1]
+                    EnsureKey -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Environment:Development"
+                    EnsureKey -dict $mappings -key $file.Directory.FullName -val "$($Matches[1]):Development"
                 }
                 elseif ($programContent -match $pattern2) {
-                    Ensure-Key -dict $mappings -key $file.Directory.FullName -val $Matches[1].Replace('{ctx.HostingEnvironment.EnvironmentName}', 'Development')
+                    EnsureKey -dict $mappings -key $file.Directory.FullName -val $Matches[1].Replace('{ctx.HostingEnvironment.EnvironmentName}', 'Development')
                 }
             }
         }
@@ -93,7 +110,7 @@ function Get-Mappings() {
 }
 
 $ErrorActionPreference = 'Stop'
-#
+# get optional secrets file with black- and whitelist
 $path = "$PSScriptRoot/secrets.json"
 $secretsConfig = $null
 if (Test-Path $path) {
@@ -102,8 +119,8 @@ if (Test-Path $path) {
 }
 $blackList = $secretsConfig.blackList ?? @('ConnectionStrings:')
 $whiteList = $secretsConfig.whiteList ?? @()
-#
-$mappings = Get-Mappings
+# receive mappings for every appropriate project in the solution
+$mappings = GetMappings
 if ($mappings.Count -eq 0) {
     throw "No mappings available in this directory."
 }
@@ -111,17 +128,15 @@ Write-Host "Found $($mappings.Count) projects to map:"
 $mappings.Keys | ForEach-Object {
     Write-Host "   - $_"
 }
-
 $null = Use-CafContext
-# Hashtable with relative path to project folder and App Configuration label to use
+# hashtable with relative path to project folder and App Configuration label to use
 $path = $PSScriptRoot
-
-# If this command fails you are probably in the wrong subscription
+# if this command fails you are probably in the wrong subscription
 $projectName = (Get-ChildItem -Filter *.sln?)[0].Name.Split('.')[0].ToLower()
 Write-Host "Detecting App Configuration Store for project [$projectName]..." -NoNewline
 try {
     $appConfigs = Get-AzAppConfigurationStore -ErrorAction SilentlyContinue
-    $matching = $appConfigs | Where { $_.Name.ToLower().Contains($projectName.ToLower()) }
+    $matching = $appConfigs | Where-Object { $_.Name.ToLower().Contains($projectName.ToLower()) }
     if ($matching.Length -gt 0) {
         $appConfigName = $matching[0].Name
     }
@@ -135,7 +150,7 @@ if (!$appConfigName.Contains($projectName)) {
 }
 Write-Host "[$appConfigName]" -ForegroundColor Green
 $secrets = (Get-AzAppConfigurationKeyValue -Endpoint "https://$appConfigName.azconfig.io")
-
+# cycle through each mapping key and call the user-secrets setting
 foreach ($file in $mappings.Keys) {
     $currentProject = $file
     Write-Host "Setting secrets for project $currentProject."
@@ -191,7 +206,7 @@ foreach ($file in $mappings.Keys) {
         if ($secret.ContentType -eq 'application/json') {
             # it is a JSON secret
             $json = $secret.Value | ConvertFrom-Json
-            $flat = Flatten-Json -object $json -Prefix $secretKey
+            $flat = FlattenJson -object $json -Prefix $secretKey
             $flat.GetEnumerator() | ForEach-Object {
                 $keyToTake = $_.Key.Replace('[', '').Replace(']', '.')
                 dotnet user-secrets set $keyToTake $_.Value --project $currentProject | Out-Null
