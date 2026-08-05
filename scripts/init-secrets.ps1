@@ -83,8 +83,8 @@ function EnsureKey() {
 function GetMappings() {
     $path = $PSScriptRoot
     $files = Get-ChildItem $path -Filter *.csproj -Recurse
-    $pattern1 = '.ConfigureDefaults\(false, "(.*)"\)'
-    $pattern2 = '.Select\(KeyFilter.Any, \$"(.*)"\)'
+    $pattern1 = '\.ConfigureDefaults\([^)]*"(.*?)"[^)]*\)'
+    $pattern2 = '\.Select\(KeyFilter\.Any, \$"(.*)"\)'
     $mappings = @{}
     foreach ($file in $files) {
         [xml]$content = Get-Content -Raw $file
