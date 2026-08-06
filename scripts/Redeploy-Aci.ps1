@@ -96,13 +96,15 @@ if ($LogAnalyticsKey.Length -gt 0) {
 # Overwrite the file
 $content | Set-Content $path
 # Redeploy from YAML — credentials need to be injected separately as they're not exported
+$lowerAciName = $AciName.ToLowerInvariant()
+$lowerRgName = $ResourceGroup.ToLowerInvariant()
 if ($DeploySpName.Length -gt 0 -and $DeploySpKeyVaultName.Length -gt 0 -and $DeploySpKeyVaultKey.Length -gt 0) {
     # Deploy with passing registry server data
     $clientId = (az ad sp list --display-name $DeploySpName --query "[0].appId" -o tsv).Trim()
     $password = (az keyvault secret show --vault-name $DeploySpKeyVaultName -n $DeploySpKeyVaultKey --query value -o tsv).Trim()
     az container create `
-        -g $ResourceGroup `
-        -n $AciName `
+        -g $lowerRgName `
+        -n $lowerAciName `
         -f $path `
         --registry-login-server $AcrName `
         --registry-username $clientId `
@@ -111,5 +113,5 @@ if ($DeploySpName.Length -gt 0 -and $DeploySpKeyVaultName.Length -gt 0 -and $Dep
 }
 else {
     # Deploy without passing registry server data
-    az container create -g $ResourceGroup -n $AciName -f $path -o json
+    az container create -g $lowerRgName -n $lowerAciName -f $path -o json
 }
