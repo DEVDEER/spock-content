@@ -48,8 +48,10 @@ foreach ($file in $files) {
         $json = $raw | ConvertFrom-Json -Depth 20
         # change title so that API management does not get confused
         $json.info.title += " $stage"
-        # clear sec schemes because we do not need this in the
-        $json.components.securitySchemes = $null
+        if ($null -ne $json.components.securitySchemes.OAuth2.flows.implicit.scopes) {
+            # clear sec scheme scopes because we do not need this in the APIM
+            $json.components.securitySchemes.OAuth2.flows.implicit.scopes = $null
+        }
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
