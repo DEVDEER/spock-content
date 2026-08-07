@@ -38,8 +38,10 @@ $ProjectName = $ProjectName.ToLowerInvariant()
 $AdditionalName = $AdditionalName.ToLowerInvariant()
 $resolvedAdditionalName = $AdditionalName.Length -gt 0 ? ".$AdditionalName" : ''
 $files = Get-ChildItem "$BuildOutputDirectory/*.json"
+
 foreach ($file in $files) {
     foreach ($stage in $Stages) {
+        $fullStageName = $stage -eq "int" ? "Integration" : $stage -eq "test" ? "Test" : "Production"
         $raw = (Get-Content -Raw $file)
         if (!$SkipVersionsReplace.IsPresent) {
             # Only replace versions in paths if the caller did not forbid it.
@@ -47,7 +49,7 @@ foreach ($file in $files) {
         }
         $json = $raw | ConvertFrom-Json -Depth 20
         # change title so that API management does not get confused
-        $json.info.title += " $stage"
+        $json.info.title += " $fullStageName"
         if ($null -ne $json.components.securitySchemes.OAuth2.flows.implicit.scopes) {
             # clear sec scheme scopes because we do not need this in the APIM
             $json.components.securitySchemes.OAuth2.flows.implicit.scopes = $null
