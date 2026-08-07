@@ -249,7 +249,7 @@ foreach ($currentFile in $files) {
         -ApiRevision $revision | Out-Null
     Write-Host "Done"
     # Import the API
-    Write-Host "Importing API for into new revision '$revision' version set '$currentVersionSetId' from file '$currentFile'... " -NoNewline
+    Write-Host "Importing API into new revision '$revision' version set '$currentVersionSetId' from file '$currentFile'... " -NoNewline
     Import-AzApiManagementApi `
         -Context $ctx `
         -ApiId $apiId `

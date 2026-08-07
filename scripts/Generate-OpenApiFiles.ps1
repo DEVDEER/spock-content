@@ -46,6 +46,10 @@ foreach ($file in $files) {
             $raw = $raw -replace "/api/v(.)/", "/"
         }
         $json = $raw | ConvertFrom-Json -Depth 20
+        # change title so that API management does not get confused
+        $json.info.title += " $stage"
+        # clear sec schemes because we do not need this in the
+        $json.components.securitySchemes = $null
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
             # add server url to OpenAPI
