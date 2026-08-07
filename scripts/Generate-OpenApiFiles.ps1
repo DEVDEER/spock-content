@@ -52,7 +52,7 @@ foreach ($file in $files) {
         $json.info.title += " $fullStageName"
         if ($null -ne $json.components.securitySchemes.OAuth2.flows.implicit.scopes) {
             # clear sec scheme scopes because we do not need this in the APIM
-            $json.components.securitySchemes.OAuth2.flows.implicit.scopes = $null
+            $json.components.securitySchemes.OAuth2.flows.implicit.scopes = @{}
         }
         $version = $json.info.version
         if (!($SkipServers.IsPresent)) {
