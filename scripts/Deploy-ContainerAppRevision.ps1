@@ -9,40 +9,25 @@
     reports it as Running and Healthy based on the health probes configured on
     the app, then shifts ingress traffic to it. On failure the new revision is
     deactivated. Optionally deactivates old revisions after a successful cutover.
-
     Requires the container app to run in 'Multiple' revision mode and to have
-    health probes configured. When -EnsureMultipleRevisionMode is set, apps
-    still running in 'Single' mode are converted automatically before the
-    deployment; otherwise the script fails.
+    health probes configured.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$ResourceGroup,
-
     [Parameter(Mandatory = $true)]
     [string]$ContainerAppName,
-
     [Parameter(Mandatory = $true)]
     [string]$Image,
-
     [string]$RevisionSuffix,
-
     [ValidateRange(1, 3600)]
     [int]$ReadinessTimeoutSeconds = 600,
-
     [ValidateRange(1, 300)]
     [int]$ReadinessIntervalSeconds = 10,
-
     # Deactivates all previously active revisions after the successful cutover so they stop consuming replicas.
-    [switch]$DeactivateOldRevisions,
-
-    # Converts the container app to 'Multiple' revision mode if it is still
-    # running in 'Single' mode. Without this switch the script fails instead,
-    # so the mode change stays an explicit, reviewable decision per pipeline.
-    [switch]$EnsureMultipleRevisionMode
+    [switch]$DeactivateOldRevisions
 )
-
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -103,20 +88,19 @@ function Resolve-RevisionSuffix {
 function Assert-MultipleRevisionMode {
     <#
     .SYNOPSIS
-        Ensures the container app uses multiple revision mode.
+        Verifies that the container app uses multiple revision mode.
+    .DESCRIPTION
+        Read-only check. The revision mode is part of the infrastructure and is
+        owned by the Bicep templates, so this function never modifies the app.
     .PARAMETER ContainerAppName
         The container app whose revision mode is checked.
-    .PARAMETER ConvertIfSingle
-        Converts the app to multiple revision mode when allowed.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [string]$ContainerAppName,
 
         [Parameter(Mandatory = $true)]
-        [string]$ResourceGroup,
-
-        [switch]$ConvertIfSingle
+        [string]$ResourceGroup
     )
     $revisionMode = Invoke-AzCli -Arguments @(
         'containerapp', 'show',
@@ -126,32 +110,13 @@ function Assert-MultipleRevisionMode {
         '-o', 'tsv'
     )
     if ($revisionMode -eq 'Multiple') {
+        Write-Host "Container app '$ContainerAppName' is in 'Multiple' revision mode."
         return
     }
-    if (-not $ConvertIfSingle) {
-        throw "Container app '$ContainerAppName' must be in 'Multiple' revision mode for blue/green deployments (current mode: '$revisionMode'). In 'Single' mode traffic switches immediately on update, which defeats the health gate. Pass -EnsureMultipleRevisionMode to convert the app automatically."
-    }
-    Write-Host "Container app '$ContainerAppName' is in '$revisionMode' mode. Converting to 'Multiple' revision mode."
-    Invoke-AzCli -Arguments @(
-        'containerapp', 'revision', 'set-mode',
-        '--name', $ContainerAppName,
-        '--resource-group', $ResourceGroup,
-        '--mode', 'multiple'
-    ) | Out-Null
-    # Verify the change actually took effect before relying on it.
-    $revisionMode = Invoke-AzCli -Arguments @(
-        'containerapp', 'show',
-        '--name', $ContainerAppName,
-        '--resource-group', $ResourceGroup,
-        '--query', 'properties.configuration.activeRevisionsMode',
-        '-o', 'tsv'
-    )
-    if ($revisionMode -ne 'Multiple') {
-        throw "Failed to switch container app '$ContainerAppName' to 'Multiple' revision mode (still '$revisionMode')."
-    }
+    throw "Container app '$ContainerAppName' must be in 'Multiple' revision mode for blue/green deployments (current mode: '$revisionMode'). In 'Single' mode traffic switches immediately on update, which defeats the health gate. Set 'configActiveRevisionsMode' to 'Multiple' in the Bicep template and deploy the infrastructure before running this deployment."
 }
 
-function Show-RevisionLogs {
+function Show-RevisionLog {
     <#
     .SYNOPSIS
         Prints container logs for a specific revision when available.
@@ -194,7 +159,7 @@ function Show-RevisionLogs {
     }
 }
 
-function Wait-ForRevisionToBeHealthy {
+function Wait-RevisionHealthy {
     <#
     .SYNOPSIS
         Waits until a revision reaches Running and Healthy state.
@@ -203,19 +168,19 @@ function Wait-ForRevisionToBeHealthy {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [string]$RevisionName,
+        [string]$ContainerAppName,
 
         [Parameter(Mandatory = $true)]
         [string]$ResourceGroup,
 
         [Parameter(Mandatory = $true)]
+        [string]$RevisionName,
+
+        [Parameter(Mandatory = $true)]
         [int]$TimeoutSeconds,
 
         [Parameter(Mandatory = $true)]
-        [int]$IntervalSeconds,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ContainerAppName
+        [int]$IntervalSeconds
     )
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
@@ -228,12 +193,12 @@ function Wait-ForRevisionToBeHealthy {
         ) | ConvertFrom-Json
 
         if ($state.running -match 'Failed|Terminated|Degraded|Stopped') {
-            Show-RevisionLogs -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
+            Show-RevisionLog -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
             throw "Revision '$RevisionName' ended in state '$($state.running)'."
         }
 
         if ($state.health -eq 'Unhealthy') {
-            Show-RevisionLogs -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
+            Show-RevisionLog -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
             throw "Revision '$RevisionName' reported healthState 'Unhealthy'. Check the readiness/startup probe results and container logs."
         }
 
@@ -253,11 +218,11 @@ function Wait-ForRevisionToBeHealthy {
         Start-Sleep -Seconds $IntervalSeconds
     }
 
-    Show-RevisionLogs -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
+    Show-RevisionLog -ContainerAppName $ContainerAppName -ResourceGroup $ResourceGroup -RevisionName $RevisionName
     throw "Timed out after $TimeoutSeconds seconds while waiting for revision '$RevisionName' to become Running and Healthy."
 }
 
-function Deactivate-Revision {
+function Disable-Revision {
     <#
     .SYNOPSIS
         Deactivates a specific container app revision.
@@ -282,8 +247,7 @@ function Deactivate-Revision {
 
 Assert-MultipleRevisionMode `
     -ContainerAppName $ContainerAppName `
-    -ResourceGroup $ResourceGroup `
-    -ConvertIfSingle:$EnsureMultipleRevisionMode
+    -ResourceGroup $ResourceGroup
 
 $revisionSuffix = Resolve-RevisionSuffix -ProvidedSuffix $RevisionSuffix
 
@@ -318,12 +282,12 @@ try {
         throw "The latest revision '$revisionName' does not match the requested suffix '$revisionSuffix'. Another deployment may be running concurrently."
     }
     Write-Host "Waiting for revision '$revisionName' to become Running and Healthy."
-    Wait-ForRevisionToBeHealthy `
-        -RevisionName $revisionName `
+    Wait-RevisionHealthy `
+        -ContainerAppName $ContainerAppName `
         -ResourceGroup $ResourceGroup `
+        -RevisionName $revisionName `
         -TimeoutSeconds $ReadinessTimeoutSeconds `
-        -IntervalSeconds $ReadinessIntervalSeconds `
-        -ContainerAppName $ContainerAppName
+        -IntervalSeconds $ReadinessIntervalSeconds
 
     Write-Host "Switching traffic to revision '$revisionName' at 100%."
     Invoke-AzCli -Arguments @(
@@ -336,7 +300,7 @@ try {
 catch {
     if (-not [string]::IsNullOrWhiteSpace($revisionName)) {
         try {
-            Deactivate-Revision -RevisionName $revisionName -ResourceGroup $ResourceGroup
+            Disable-Revision -RevisionName $revisionName -ResourceGroup $ResourceGroup
             Write-Host "Deactivated revision '$revisionName' after rollout failure."
         }
         catch {
@@ -351,7 +315,7 @@ if ($DeactivateOldRevisions) {
             continue
         }
         try {
-            Deactivate-Revision -RevisionName $oldRevision -ResourceGroup $ResourceGroup
+            Disable-Revision -RevisionName $oldRevision -ResourceGroup $ResourceGroup
             Write-Host "Deactivated old revision '$oldRevision'."
         }
         catch {
@@ -361,5 +325,4 @@ if ($DeactivateOldRevisions) {
         }
     }
 }
-
 Write-Host "Deployment of revision '$revisionName' completed successfully."
