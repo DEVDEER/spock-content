@@ -5,12 +5,32 @@
     Performs a blue/green deployment of an Azure Container App revision.
 
 .DESCRIPTION
-    Creates a new revision from the given image and waits until the platform
-    reports it as Running and Healthy based on the health probes configured on
-    the app, then shifts ingress traffic to it. On failure the new revision is
-    deactivated. Optionally deactivates old revisions after a successful cutover.
+    Rolls out a new image in two phases, mirroring what deployment slots do for
+    Azure App Services.
+
+    Apps that do work without being called - queue consumers, timers, scheduled
+    jobs - start doing that work as soon as a revision exists, long before it
+    receives any traffic. To keep that work switched off until the image has
+    proven itself, the rollout runs as:
+
+      1. A staging revision is created with -DeploySlotVariable set to
+         -StagingSlotValue, so the application knows it is not live yet, and it
+         carries the full health check.
+      2. Once it reports healthy, the production revision is created with
+         -ProductionSlotValue and gets a shorter health check.
+      3. Ingress traffic moves to the production revision, the staging revision
+         is deactivated, and optionally so are the previously active revisions.
+
+    Container App revisions are immutable, so phase two is necessarily a second
+    revision rather than a restart of the first one with different settings.
+
+    Any failure deactivates every revision this script created and leaves the
+    traffic on the revision that was already serving it.
+
     Requires the container app to run in 'Multiple' revision mode and to have
-    health probes configured.
+    health probes configured. The application must read -DeploySlotVariable and
+    gate its background work on it, otherwise the staging phase verifies nothing
+    the production phase would not have caught.
 #>
 [CmdletBinding()]
 param(
@@ -26,7 +46,28 @@ param(
     [ValidateRange(1, 300)]
     [int]$ReadinessIntervalSeconds = 10,
     # Deactivates all previously active revisions after the successful cutover so they stop consuming replicas.
-    [switch]$DeactivateOldRevisions
+    [switch]$DeactivateOldRevisions,
+
+    # Name of the environment variable the application reads to decide whether it
+    # already serves production traffic and may start its background work.
+    [ValidateNotNullOrEmpty()]
+    [string]$DeploySlotVariable = 'DEPLOY_SLOT',
+
+    # Value the staging revision starts with (background work disabled).
+    [ValidateNotNullOrEmpty()]
+    [string]$StagingSlotValue = '1',
+
+    # Value the production revision starts with (background work enabled).
+    [ValidateNotNullOrEmpty()]
+    [string]$ProductionSlotValue = '0',
+
+    # Health check timeout for the production revision. Deliberately shorter than
+    # -ReadinessTimeoutSeconds: the image already proved that it boots during the
+    # staging phase, and every second spent here is a second in which the
+    # production revision runs its background work alongside the previous
+    # revision, which is still active and doing the same work.
+    [ValidateRange(1, 3600)]
+    [int]$ProductionReadinessTimeoutSeconds = 180
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -114,6 +155,65 @@ function Assert-MultipleRevisionMode {
         return
     }
     throw "Container app '$ContainerAppName' must be in 'Multiple' revision mode for blue/green deployments (current mode: '$revisionMode'). In 'Single' mode traffic switches immediately on update, which defeats the health gate. Set 'configActiveRevisionsMode' to 'Multiple' in the Bicep template and deploy the infrastructure before running this deployment."
+}
+
+function New-Revision {
+    <#
+    .SYNOPSIS
+        Creates a new revision of the container app from the given image.
+    .PARAMETER RevisionSuffix
+        The suffix identifying the revision to create.
+    .PARAMETER EnvironmentVariable
+        Optional 'KEY=VALUE' assignments applied on top of the environment that
+        is already configured on the app. Variables that are not listed keep the
+        value the Bicep deployment gave them.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'Internal helper of a deployment script that has no -WhatIf mode; every other mutating call in this script is unconditional too.')]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ContainerAppName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceGroup,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Image,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RevisionSuffix,
+
+        [string[]]$EnvironmentVariable = @()
+    )
+    # Azure caps the full revision name, so catch an overlong suffix here rather
+    # than in the middle of the rollout.
+    $expectedName = "$ContainerAppName--$RevisionSuffix"
+    if ($expectedName.Length -gt 63) {
+        throw "The revision name '$expectedName' is $($expectedName.Length) characters long but Azure caps revision names at 63. Shorten the container app name or the revision suffix."
+    }
+    $arguments = @(
+        'containerapp', 'update',
+        '--name', $ContainerAppName,
+        '--resource-group', $ResourceGroup,
+        '--image', $Image,
+        '--revision-suffix', $RevisionSuffix
+    )
+    if ($EnvironmentVariable.Count -gt 0) {
+        # --set-env-vars only adds or updates the listed variables. Everything
+        # else the app is configured with stays as it is.
+        $arguments += '--set-env-vars'
+        $arguments += $EnvironmentVariable
+    }
+    $arguments += @('--query', 'properties.latestRevisionName', '-o', 'tsv')
+    $revisionName = Invoke-AzCli -Arguments $arguments
+    if ([string]::IsNullOrWhiteSpace($revisionName)) {
+        throw "The update command did not return the name of the new revision for suffix '$RevisionSuffix'."
+    }
+    if (-not $revisionName.EndsWith("-$RevisionSuffix")) {
+        throw "The latest revision '$revisionName' does not match the requested suffix '$RevisionSuffix'. Another deployment may be running concurrently."
+    }
+    return $revisionName
 }
 
 function Show-RevisionLog {
@@ -263,30 +363,48 @@ $previouslyActiveRevisions = @(
     )) -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 )
 
+# Every revision this script creates, so that a failure at any point can clean up
+# all of them and never leaves a half finished rollout behind.
+$createdRevisions = [System.Collections.Generic.List[string]]::new()
 $revisionName = $null
 try {
-    Write-Host "Creating new revision with suffix '$revisionSuffix' for container app '$ContainerAppName'."
-    $revisionName = Invoke-AzCli -Arguments @(
-        'containerapp', 'update',
-        '--name', $ContainerAppName,
-        '--resource-group', $ResourceGroup,
-        '--image', $Image,
-        '--revision-suffix', $revisionSuffix,
-        '--query', 'properties.latestRevisionName',
-        '-o', 'tsv'
-    )
-    if ([string]::IsNullOrWhiteSpace($revisionName)) {
-        throw "The update command did not return the name of the new revision for suffix '$revisionSuffix'."
-    }
-    if (-not $revisionName.EndsWith("-$revisionSuffix")) {
-        throw "The latest revision '$revisionName' does not match the requested suffix '$revisionSuffix'. Another deployment may be running concurrently."
-    }
-    Write-Host "Waiting for revision '$revisionName' to become Running and Healthy."
+    # Phase 1: staging revision. Same image as the production revision, but the
+    # application is told it is not live so background work stays off while the
+    # image proves that it boots and that its dependencies are reachable.
+    $stagingSuffix = "$revisionSuffix-stage"
+    Write-Host "Creating staging revision with suffix '$stagingSuffix' ($DeploySlotVariable=$StagingSlotValue)."
+    $stagingRevision = New-Revision `
+        -ContainerAppName $ContainerAppName `
+        -ResourceGroup $ResourceGroup `
+        -Image $Image `
+        -RevisionSuffix $stagingSuffix `
+        -EnvironmentVariable @("$DeploySlotVariable=$StagingSlotValue")
+    $createdRevisions.Add($stagingRevision)
+    Write-Host "Waiting for staging revision '$stagingRevision' to become Running and Healthy."
+    Wait-RevisionHealthy `
+        -ContainerAppName $ContainerAppName `
+        -ResourceGroup $ResourceGroup `
+        -RevisionName $stagingRevision `
+        -TimeoutSeconds $ReadinessTimeoutSeconds `
+        -IntervalSeconds $ReadinessIntervalSeconds
+
+    # Phase 2: production revision. Only the slot variable differs from the
+    # staging revision that was just verified.
+    Write-Host "Creating production revision with suffix '$revisionSuffix' ($DeploySlotVariable=$ProductionSlotValue)."
+    $revisionName = New-Revision `
+        -ContainerAppName $ContainerAppName `
+        -ResourceGroup $ResourceGroup `
+        -Image $Image `
+        -RevisionSuffix $revisionSuffix `
+        -EnvironmentVariable @("$DeploySlotVariable=$ProductionSlotValue")
+    $createdRevisions.Add($revisionName)
+
+    Write-Host "Waiting for production revision '$revisionName' to become Running and Healthy."
     Wait-RevisionHealthy `
         -ContainerAppName $ContainerAppName `
         -ResourceGroup $ResourceGroup `
         -RevisionName $revisionName `
-        -TimeoutSeconds $ReadinessTimeoutSeconds `
+        -TimeoutSeconds $ProductionReadinessTimeoutSeconds `
         -IntervalSeconds $ReadinessIntervalSeconds
 
     Write-Host "Switching traffic to revision '$revisionName' at 100%."
@@ -298,17 +416,34 @@ try {
     ) | Out-Null
 }
 catch {
-    if (-not [string]::IsNullOrWhiteSpace($revisionName)) {
+    foreach ($createdRevision in $createdRevisions) {
         try {
-            Disable-Revision -RevisionName $revisionName -ResourceGroup $ResourceGroup
-            Write-Host "Deactivated revision '$revisionName' after rollout failure."
+            Disable-Revision -RevisionName $createdRevision -ResourceGroup $ResourceGroup
+            Write-Host "Deactivated revision '$createdRevision' after rollout failure."
         }
         catch {
-            Write-Warning "Failed to deactivate revision '$revisionName': $($_.Exception.Message)"
+            Write-Warning "Failed to deactivate revision '$createdRevision': $($_.Exception.Message)"
         }
     }
     throw
 }
+
+# The staging revision has done its job once traffic is on the production
+# revision. It is deactivated regardless of -DeactivateOldRevisions because this
+# script created it and nothing else will ever clean it up.
+foreach ($createdRevision in $createdRevisions) {
+    if ($createdRevision -eq $revisionName) {
+        continue
+    }
+    try {
+        Disable-Revision -RevisionName $createdRevision -ResourceGroup $ResourceGroup
+        Write-Host "Deactivated staging revision '$createdRevision'."
+    }
+    catch {
+        Write-Warning "Failed to deactivate staging revision '$createdRevision': $($_.Exception.Message)"
+    }
+}
+
 if ($DeactivateOldRevisions) {
     foreach ($oldRevision in $previouslyActiveRevisions) {
         if ($oldRevision -eq $revisionName) {
@@ -325,4 +460,5 @@ if ($DeactivateOldRevisions) {
         }
     }
 }
+
 Write-Host "Deployment of revision '$revisionName' completed successfully."
