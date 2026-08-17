@@ -8,29 +8,11 @@
     Rolls out a new image in two phases, mirroring what deployment slots do for
     Azure App Services.
 
-    Apps that do work without being called - queue consumers, timers, scheduled
-    jobs - start doing that work as soon as a revision exists, long before it
-    receives any traffic. To keep that work switched off until the image has
-    proven itself, the rollout runs as:
-
-      1. A staging revision is created with -DeploySlotVariable set to
-         -StagingSlotValue, so the application knows it is not live yet, and it
-         carries the full health check.
-      2. Once it reports healthy, the production revision is created with
-         -ProductionSlotValue and gets a shorter health check.
-      3. Ingress traffic moves to the production revision, the staging revision
-         is deactivated, and optionally so are the previously active revisions.
-
-    Container App revisions are immutable, so phase two is necessarily a second
-    revision rather than a restart of the first one with different settings.
-
     Any failure deactivates every revision this script created and leaves the
     traffic on the revision that was already serving it.
 
     Requires the container app to run in 'Multiple' revision mode and to have
-    health probes configured. The application must read -DeploySlotVariable and
-    gate its background work on it, otherwise the staging phase verifies nothing
-    the production phase would not have caught.
+    health probes configured.
 #>
 [CmdletBinding()]
 param(
