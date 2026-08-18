@@ -49,7 +49,12 @@ foreach ($file in $files) {
         }
         $json = $raw | ConvertFrom-Json -Depth 20
         # change title so that API management does not get confused
-        $json.info.title += " $fullStageName"
+        if ($json.info.title -contains '%STAGE%') {
+            $json.info.title = $json.info.title -replace '%STAGE%', $fullStageName
+        }
+        else {
+            $json.info.title += " $fullStageName"
+        }
         if ($null -ne $json.components.securitySchemes.OAuth2.flows.implicit.scopes) {
             # clear sec scheme scopes because we do not need this in the APIM
             $json.components.securitySchemes.OAuth2.flows.implicit.scopes = @{}
