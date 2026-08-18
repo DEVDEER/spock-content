@@ -49,8 +49,8 @@ foreach ($file in $files) {
         }
         $json = $raw | ConvertFrom-Json -Depth 20
         # change title so that API management does not get confused
-        if ($json.info.title -contains '%STAGE%') {
-            $json.info.title = $json.info.title -replace '%STAGE%', $fullStageName
+        if ($json.info.title.Contains('%STAGE_LABEL%')) {
+            $json.info.title = $json.info.title.Replace('%STAGE_LABEL%', $fullStageName)
         }
         else {
             $json.info.title += " $fullStageName"
