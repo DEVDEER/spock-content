@@ -1,5 +1,11 @@
 variables:
   - group: ${{ variables['System.TeamProject'] }}
+  - name: 'ServiceConnection'
+    value: 'lz-dd-odo'
+  - name: 'Project'
+    value: ${{ variables['System.TeamProject'] }}
+  - name: 'Stage'
+    value: 'test'
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -7,9 +13,9 @@ pool:
 trigger: none
 
 schedules:
-  # Run weekly on Sunday at midnight
-  - cron: '0 0 * * 0'
-    displayName: Weekly Build
+  # Run daily at midnight
+  - cron: '0 0 * * *'
+    displayName: Daily
     branches:
       include:
         - main
@@ -20,42 +26,78 @@ jobs:
     displayName: 'OWASP Dependency Check'
     timeoutInMinutes: 100
     steps:
-
-      - pwsh: |
-          $dataPath = $(get-childitem "$(Agent.WorkFolder)\_tasks\dependency-check-build-task*\*.*.*\dependency-check\data").FullName
-          if ($dataPath) {
-            Write-Host "##vso[task.setvariable variable=DEPENDENCY_CHECK_DATA_PATH]$dataPath"
-            Write-Host "Found dependency-check data directory: $dataPath"
-          }
-          else {
-            Write-Host "No dependency-check data directory found."
-          }
-        displayName: 'Look for dependency-check data directory'
-
-      - task: Cache@2
-        displayName: 'Cache dependency check data'
-        condition: ne(variables['DEPENDENCY_CHECK_DATA_PATH'], '')
+      - task: AzureCLI@2
+        displayName: Run job
         inputs:
-          key: 'dependency-check | "$(Agent.OS)"'
-          path: $(DEPENDENCY_CHECK_DATA_PATH)
+          azureSubscription: $(ServiceConnection)
+          scriptType: 'pscore'
+          scriptLocation: 'inlineScript'
+          workingDirectory: '$(Agent.WorkFolder)'
+          inlineScript: |
+            mkdir dependency-check
+            Write-Host "Created folder for dependency-check"
+            $res = az containerapp job start -n cj-owasp-$(Project)-dd-odo-test -g rg-odo-test --query name -o tsv
+            Write-Host  "Job with name $res started."
+            while ($true) {
+              Start-Sleep 3
+              $jobState = az containerapp job execution show -n cj-owasp-$(Project)-dd-odo-test -g rg-odo-test --job-execution-name $res --query "properties.status" -o tsv
+              if ($jobState -eq 'Failed') {
+                exit 1
+              }
+              if ($jobState -eq 'Succeeded') {
+                exit 0
+              }
+            }
 
-      - task: dependency-check-build-task@6
-        displayName: 'Dependency Check'
-        continueOnError: true
+      - task: AzurePowerShell@5
+        displayName: Downloading results
         inputs:
-          projectName: $(System.TeamProject)
-          scanPath: 'src/**/*.csproj'
-          failOnCVSS: 4
-          format: 'HTML,JSON,JUNIT'
-          reportsDirectory: '$(Agent.WorkFolder)/dependency-check'
-          additionalArguments: '--nvdApiKey $(NvdApiKey)'
-
-      - pwsh: |
-          if (!(Test-Path "$(Agent.WorkFolder)/dependency-check/dependency-check-junit.xml")) {
-            throw "ERROR: Dependency Check did not produce a JUnit report! Possible execution error."
-          }
-        displayName: 'Verify Dependency Check Execution'
-        workingDirectory: $(Build.SourcesDirectory)
+          azureSubscription: $(ServiceConnection)
+          azurePowerShellVersion: 'LatestVersion'
+          workingDirectory: '$(Agent.WorkFolder)/dependency-check'
+          pwsh: true
+          ScriptType: 'InlineScript'
+          inline: |
+            $container = 'reports'
+            $Project = "$(Project)".ToLower()
+            $Stage = "$(Stage)".ToLower()
+            $downloaded = 0
+            $account = "stoddodoshare$Stage"
+            $date = (Get-Date).ToUniversalTime().ToString('yyyyMMdd')
+            $prefix = "$($Project)/$($date)/"
+            $headers = @{
+                'x-ms-version' = '2022-11-02'
+            }
+            Write-Host "Connecting to Azure storage account..."
+            $key = (Get-AzStorageAccountKey -StorageAccountName $account -ResourceGroupName "rg-odo-$Stage")[1].Value
+            $ctx = New-AzStorageContext -StorageAccountName $account -StorageAccountKey $key
+            Write-Host "Connected to $($ctx.StorageAccountName)"
+            $sas = New-AzStorageContainerSASToken -Name $container -Permission rl -ExpiryTime (Get-Date).AddHours(1) -Context $ctx
+            Write-Host "Received SAS token for container $container"
+            $sasQuery = $sas.TrimStart('?')
+            $marker = $null
+            do {
+                $listUrl = "https://$account.blob.core.windows.net/$($container)?restype=container&comp=list&prefix=$([uri]::EscapeDataString($prefix))&$sasQuery"
+                if ($marker) {
+                    $listUrl += "&marker=$([uri]::EscapeDataString($marker))"
+                }
+                $raw = Invoke-RestMethod -Uri $listUrl -Headers $headers
+                $raw
+                [xml]$res = $raw.TrimStart([char]0xFEFF)
+                foreach ($blobName in $res.EnumerationResults.Blobs.Blob.Name) {
+                    $fileName = Split-Path $blobName -Leaf
+                    $url = "https://$account.blob.core.windows.net/$container/$($blobName)?$sasQuery"
+                    Invoke-WebRequest -Uri $url -Headers $headers -OutFile $fileName
+                    Write-Host "Downloaded $fileName"
+                    $downloaded++
+                }
+                $marker = $res.EnumerationResults.NextMarker
+            } while ($marker)
+            if ($downloaded -eq 0) {
+              Write-Host "Error: No files found!"
+              exit 1
+            }
+            exit 0
 
       - task: PublishTestResults@2
         displayName: 'Publish OWASP Test Results'
@@ -63,3 +105,17 @@ jobs:
           testResultsFiles: '*junit.xml'
           searchFolder: '$(Agent.WorkFolder)/dependency-check'
           testRunTitle: 'OWASP Dependency Check'
+          failTaskOnFailedTests: true
+
+      - task: CopyFiles@2
+        displayName: Copy Reports
+        inputs:
+          sourceFolder: '$(Agent.WorkFolder)/dependency-check'
+          contents: '**'
+          targetFolder: $(Build.ArtifactStagingDirectory)
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact'
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        condition: succeededOrFailed()
