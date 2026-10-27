@@ -119,3 +119,9 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         condition: succeededOrFailed()
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact'
+        inputs:
+          PathtoPublish: '$(Agent.WorkFolder)/dependency-check'
+        condition: succeededOrFailed()
