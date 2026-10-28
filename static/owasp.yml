@@ -101,6 +101,7 @@ jobs:
 
       - task: PublishTestResults@2
         displayName: 'Publish OWASP Test Results'
+        condition: succeededOrFailed()
         inputs:
           testResultsFiles: '*junit.xml'
           searchFolder: '$(Agent.WorkFolder)/dependency-check'
@@ -109,6 +110,7 @@ jobs:
 
       - task: CopyFiles@2
         displayName: Copy Reports
+        condition: succeededOrFailed()
         inputs:
           sourceFolder: '$(Agent.WorkFolder)/dependency-check'
           contents: '**'
@@ -116,12 +118,6 @@ jobs:
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact'
+        condition: succeededOrFailed()
         inputs:
           PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        condition: succeededOrFailed()
-
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact'
-        inputs:
-          PathtoPublish: '$(Agent.WorkFolder)/dependency-check'
-        condition: succeededOrFailed()
