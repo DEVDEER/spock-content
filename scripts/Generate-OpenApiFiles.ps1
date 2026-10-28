@@ -70,9 +70,17 @@ foreach ($file in $files) {
                 # Will replace the text "%STAGE%" with the short stage name.
                 $resolvedHost = $ServerHost -replace '%STAGE%', $stage
             }
-            $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$resolvedHost/api/v$version" })
+            if ($null -ne $json.servers) {
+                # servers already exist
+                $json.servers[0].url = "https://$resolvedHost/api/v$version"
+            }
+            else {
+                # add servers element
+                $null = $json | Add-Member -MemberType NoteProperty -Name "servers" -Value @(@{ url = "https://$resolvedHost/api/v$version" })
+            }
             Write-Host "Resolved host name for API is $resolvedHost."
         }
         $null = $json | ConvertTo-Json -Depth 20 | Set-Content "$OutputDirectory/openapi.$($ProjectName)$($resolvedAdditionalName).$stage.v$version.json"
     }
 }
+
